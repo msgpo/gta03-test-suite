@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Simple Tests</title>
+    <link rel="shortcut icon" href="hsw.png">
+  </head>
+
+  <body>
+    <h1>Simple Tests</h1>
+
+    <ul>
+      <li>Tests are self contained programs (scripts).</li>
+      <li>Tests can be run from the command line.</li>
+      <li>Tests require minimal infrastructure.</li>
+    </ul>
+
+    <h2>Automated Test</h2>
+
+    <p>
+      The first kind of test is a fully automatic test.  There is no
+      operator intervention, the test just produces a pass or fail
+      result.
+    </p>
+    <font color="light blue">
+    <pre>
+# temperature in Celcius * 10
+
+battery_temp=$(GET_VALUE /sys/devices/platform/bq27000-battery.0/power_supply/bat/temp)
+
+STATUS temperature = ${battery_temp} C*10
+
+if [ ${battery_temp} -gt 350 ]
+then
+  FAIL battery overheating
+fi
+
+[ ${battery_temp} -lt 50 ] && FAIL battery to cold
+
+    </pre>
+    </font>
+
+
+    <h2>Interactive Test</h2>
+
+    <p>
+      Some tests will require operator intervention.  The test will
+      set up a certain device then ask the operator to confirm the
+      result with a simple Yes/No response.
+    </p>
+    <font color="light blue">
+    <pre>
+led=/sys/devices/platform/gta02-led.0/leds/gta02-aux:red/brightness
+
+SET_VALUE "${led}" 63
+OPERATOR_CONFIRM The red LED on
+
+SET_VALUE "${led}" 0
+OPERATOR_CONFIRM The red LED off
+    </pre>
+    </font>
+
+
+
+    <h2>The header for test script</h2>
+
+    <p>
+      Each test will need a header to identify it as an executable
+      program and to provide its name to any higher level framework.
+      It must also include the test-functions library code.
+    </p>
+
+    <font color="light blue">
+    <pre>
+#!/bin/sh
+# MENU: led1
+# confirm the operation of an LED
+
+# get standard test functions
+. /etc/test.d/test-functions
+
+# --- rest of test goes here ---
+    </pre>
+    </font>
+
+
+
+    <h2>More complex test</h2>
+
+    <p>
+      More complex tests can be created using the control flow
+      constructs in the shell.
+    </p>
+
+    <font color="light blue">
+    <pre>
+#!/bin/sh
+# MENU: led
+# confirm the operation of the LEDs
+
+# get standard test functions
+. /etc/test.d/test-functions
+
+# path to the battery parameters
+led_sys=/sys/devices/platform/gta02-led.0/leds
+
+# leds
+red="${led_sys}/gta02-aux:red/brightness"
+blue="${led_sys}/gta02-power:blue/brightness"
+orange="${led_sys}/gta02-power:orange/brightness"
+
+# set all LEDs off
+SET_VALUE "${red}" 0
+SET_VALUE "${blue}" 0
+SET_VALUE "${orange}" 0
+
+# ask the operator to confirm
+OPERATOR_CONFIRM All LEDs are off
+
+# loop to check each LED
+for colour in red blue orange
+do
+  eval led="\${${colour}}"
+  SET_VALUE "${led}" 63
+  OPERATOR_CONFIRM The ${colour} LED on
+  SET_VALUE "${led}" 0
+  OPERATOR_CONFIRM The ${colour} LED off
+done
+    </pre>
+    </font>
+
+  </body>
+</html>

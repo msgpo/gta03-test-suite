@@ -1,0 +1,38 @@
+Operation of a test:
+====================
+
+The output of any test script must be to stdout.
+Formatted as follows
+
+  INFO: some status information not logged
+  STATUS: important status that can be logged
+  FAIL: what failed
+  PASS: what succeeded
+
+The final line must be one of:
+
+  PASS: test successful
+  FAIL: one test item failed
+  FAIL: N test items failed
+
+For an interactive test requiring an operator response.  The script
+must first print a prompt then accept a simple Yes/No on stdin.  It
+must accept any case and y/n abbreviations.  Invalid responses must
+reprint the prompt and try again.
+
+  CONFIRM: The red LED is on (y/n)?
+
+
+There is a file in test.d called 'test-functions' that has shell script
+versions of these.
+
+
+
+Metadata at the start of each script:
+=====================================
+
+#!/bin/sh   (or #!/usr/bin/env python)
+# COPYRIGHT: Openmoko Inc. 2008
+# LICENSE: GPL Version 2 or later
+# MENU: word
+# DESCRIPTION: Short description not more than 80 chars

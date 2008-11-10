@@ -1,0 +1,119 @@
+#!/bin/sh
+# COPYRIGHT: Openmoko Inc. 2008
+# LICENSE: GPL Version 2 or later
+# MENU_IGNORE: YES
+# DESCRIPTION: Functions to simplfy test script
+
+# create a file handle for our output
+exec 6>&1
+
+# for operattor to confirm that a test succeeded
+# yes => pass
+# no => fail
+OPERATOR_CONFIRM()
+{
+  local prompt yorn junk
+  prompt="$*";
+  prompt="${prompt## }"
+  prompt="${prompt%% }"
+
+  while read -p "CONFIRM: ${prompt} [y/n]? " yorn junk
+  do
+    case "${yorn}" in
+      [yY]|[yY][eE][sS])
+        PASS ${prompt}
+        return 0
+        ;;
+      [nN]|[nN][oO])
+        FAIL ${prompt}
+        return 1
+        ;;
+      *)
+        echo Unrecognised response: ${yorn} >&6
+        ;;
+    esac
+  done
+}
+
+# get a value from a sysfs variable
+GET_VALUE()
+{
+  local parameter
+  parameter="$1"; shift
+  if [ -f "${parameter}" ]
+  then
+    cat "${parameter}" 2> /dev/null
+  else
+    FAIL invalid parameter: ${parameter}
+    echo 0
+  fi
+}
+
+# set a value into a sysfs variable
+SET_VALUE()
+{
+  local parameter value
+  parameter="$1"; shift
+  value="$1"; shift
+  if [ -f "${parameter}" ]
+  then
+    echo "${value}" > "${parameter}" 2> /dev/null
+  else
+    FAIL invalid parameter: ${parameter}
+  fi
+}
+
+# assume success
+TEST_RC=0
+TEST_FAIL_COUNT=0
+TEST_TOTAL_COUNT=0
+
+# the end of the test
+# not catlled directly by script
+# (called using trap 0)
+_TEST_FINISH()
+{
+  if [ "${TEST_RC}" -eq 0 ]
+  then
+    echo PASS: test successful >&6
+  elif [ "${TEST_FAIL_COUNT}" -eq 1 ]
+  then
+    echo FAIL: one test item failed >&6
+  else
+    echo FAIL: ${TEST_FAIL_COUNT} test items failed >&6
+  fi
+  exit "${TEST_RC}"
+}
+
+# a failed test
+FAIL()
+{
+  echo FAIL: $* >&6
+  TEST_RC=1
+  TEST_FAIL_COUNT=$((${TEST_FAIL_COUNT} + 1))
+  TEST_TOTAL_COUNT=$((${TEST_TOTAL_COUNT} + 1))
+}
+
+# a test pass
+PASS()
+{
+  echo PASS: $* >&6
+  TEST_TOTAL_COUNT=$((${TEST_TOTAL_COUNT} + 1))
+}
+
+# general status
+STATUS()
+{
+  echo STATUS: $* >&6
+}
+
+
+# general information
+INFO()
+{
+  echo INFO: $* >&6
+}
+
+
+# ensure we clean up at the end
+trap _TEST_FINISH 0
