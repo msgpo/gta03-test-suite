@@ -26,7 +26,8 @@ reprint the prompt and try again.
 There is a file in test.d called 'test-functions' that has shell script
 versions of these.
 
-
+There is also a python module called tests.py that can be used to
+write tests in python.
 
 Metadata at the start of each script:
 =====================================
