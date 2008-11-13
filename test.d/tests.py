@@ -13,6 +13,12 @@ bash.
 import os
 import sys
 
+# The output stream for all tests
+out = sys.stdout
+
+def info(msg, *args):
+    """Print an INFO message to the output"""
+    print >> out, "INFO: %s" % (msg % args)
 
 class Test(object):
     """Base class for all python tests
@@ -22,15 +28,9 @@ class Test(object):
     considered successful.
     """
 
-    def __init__(self, out=None):
+    def __init__(self):
         """Create a new test instance
-
-        Parameters:
-
-        - out : a file object that will receive the output.  default
-          to the standard output.
         """
-        self.out = out or sys.stdout
         self.fail_count = 0
 
     def run(self):
@@ -47,29 +47,37 @@ class Test(object):
             self.run()
         except Exception, e:
             self.fail("Got exception : %s", e)
+            raise
 
         if self.fail_count == 0:
-            print >> self.out, "PASS: test successful"
+            print >> out, "PASS: test successful"
         elif self.fail_count == 1:
-            print >> self.out, "FAIL: one test item failed"
+            print >> out, "FAIL: one test item failed"
         else:
-            print >> self.out, "FAIL: %d test items failed" % self.fail_count
+            print >> out, "FAIL: %d test items failed" % self.fail_count
 
         return 0 if self.fail_count == 0 else 1
 
-    def exec(self):
+    def execute(self):
         """Like main except that is actually exit the program"""
         ret = self.main()
         sys.exit(ret)
 
     def fail(self, msg, *args):
         """Call this method if something fails"""
-        print >> self.out, "FAIL: %s" % (msg % args)
+        print >> out, "FAIL: %s" % (msg % args)
         self.fail_count+=1
+
+    def check(self, cond, msg, *args):
+        """Check that a condition is satisfied"""
+        if not cond:
+            self.fail(msg, *args)
+        else:
+            self.info("%s : OK" % msg, *args)
 
     def info(self, msg, *args):
         """Call this method to pass info"""
-        print >> self.out, "INFO: %s" % (msg % args)
+        info(msg, *args)
 
 
 if __name__ == '__main__':
