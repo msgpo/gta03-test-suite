@@ -1,0 +1,9 @@
+These files are part of openembedded:
+
+  device_table-minimal.txt
+  makedevs.c
+
+Their purpose is to populate the /dev directory with device nodes
+sufficient to start the system.  Later when udev is started the /dev
+will be in /dev/.static/dev and a tmpfs will be mounted on /dev
+which udev will administer.

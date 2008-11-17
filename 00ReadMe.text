@@ -1,0 +1,5 @@
+The installer.sh script is meant as a simple interface
+to various other scripts to allow building an SD Card image.
+
+It is an interactive script to build various parts of the
+the image the format and write the image.

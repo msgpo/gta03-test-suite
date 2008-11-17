@@ -1,0 +1,6 @@
+This script builds a root file system from packages on the Openmoko
+server.
+
+I really need to be run under sudo to make sure all the permissions
+are correct.  I particular the --devices option fails to create
+any devices nodes since only root can do that.

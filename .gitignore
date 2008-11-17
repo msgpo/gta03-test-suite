@@ -1,0 +1,6 @@
+*.tar
+*.tar.bz2
+*.tar.gz
+*.fs
+tmp
+.installerrc
