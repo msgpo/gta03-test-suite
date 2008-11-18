@@ -16,9 +16,24 @@ import sys
 # The output stream for all tests
 out = sys.stdout
 
+
 def info(msg, *args):
     """Print an INFO message to the output"""
     print >> out, "INFO: %s" % (msg % args)
+
+
+def parse_conf(file):
+    """parse a conf file in the bash format and return a dictionary
+    key->value
+    """
+    ret = {}
+    file = open(file)
+    for line in file:
+        tokens = line.split('=', 1)
+        if len(tokens) == 2:
+            ret[tokens[0]] = tokens[1]
+    return ret
+
 
 class Test(object):
     """Base class for all python tests
@@ -32,6 +47,7 @@ class Test(object):
         """Create a new test instance
         """
         self.fail_count = 0
+        self.total_count = 0
 
     def run(self):
         """Override this method to write your own tests"""
@@ -66,18 +82,38 @@ class Test(object):
     def fail(self, msg, *args):
         """Call this method if something fails"""
         print >> out, "FAIL: %s" % (msg % args)
-        self.fail_count+=1
+        self.fail_count += 1
+        self.total_count += 1
 
     def check(self, cond, msg, *args):
         """Check that a condition is satisfied"""
         if not cond:
             self.fail(msg, *args)
         else:
-            self.info("%s : OK" % msg, *args)
+            self.pass_(msg, *args)
 
     def info(self, msg, *args):
         """Call this method to pass info"""
         info(msg, *args)
+
+    def operator_confirm(self, msg, *args):
+        """Ask a yes/no question to the operator, fail if the answer is no"""
+        while True:
+            answer = raw_input("CONFIRM: %s [y/n]? " % msg % args)
+            answer = answer.split()[0].lower()
+            if answer in ['y', 'yes']:
+                self.pass_(msg, *args)
+            elif answer in ['n', 'no']:
+                self.fail(msg, *args)
+            else:
+                print >> out, "Unrecognised response: %s" % answer
+                continue
+            break
+
+    def pass_(self, msg, *args):
+        """Pass a test"""
+        print >> out, "PASS: %s" % (msg % args)
+        self.total_count += 1
 
 
 if __name__ == '__main__':
@@ -87,6 +123,7 @@ if __name__ == '__main__':
 
         def run(self):
             self.info("hello %d", 10)
+            self.operator_confirm("are you here")
 
     MyTest().main()
 
