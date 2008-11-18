@@ -108,10 +108,14 @@ class GSMTest(tests.Test):
     """
 
     def run(self):
+        self.conf = tests.parse_conf('tests.cfg')
+
         self.modem = Calypso('/dev/ttySAC0')
         self.modem.reset()
         self.init()
         self.basics()
+        self.network()
+        self.call()
 
     def init(self):
         """initialize the modem"""
@@ -138,6 +142,24 @@ class GSMTest(tests.Test):
         self.modem.chat('+CFUN?')      # Phone functionalities
         # self.modem.chat('+CLAC')       # List of AT commands
 
+    def network(self):
+        """Try to register on the network"""
+        self.modem.chat('+CFUN=1') # Turn on antenna
+        self.modem.chat('+COPS=0') # Register on a network
+        self.modem.chat('+CREG?')  # check that we are registered
+
+    def call(self):
+        """Make phone calls"""
+        number = self.conf.get('CALLABLE_NUMBER', None)
+        if not number:
+            self.info("can't find a callable number in conf file")
+            self.info("skip call tests")
+            return
+        self.modem.chat('D%s;' % number)
+        self.operator_confirm("number %s is ringing within ~10 seconds",
+                              number)
+        self.modem.chat('H')    # release the call
+        self.operator_confirm("ringing stopped within ~10 seconds")
 
 if __name__ == '__main__':
     GSMTest().execute()
