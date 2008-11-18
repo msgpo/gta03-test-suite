@@ -13,7 +13,7 @@ import tests
 class Modem(object):
 
     def __init__(self, dev):
-        self.dev = serial.Serial(dev, 115200, rtscts=1, timeout=5)
+        self.dev = serial.Serial(dev, 115200, rtscts=1, timeout=10)
 
     def chat(self, cmd, parser=None):
         """Send an AT command to the modem and get the reply
@@ -21,7 +21,7 @@ class Modem(object):
         Parameters:
 
         - cmd : the AT command we send (not including 'AT')
-        
+
         - parser : the method we use to parse the reply from the
           modem. The default parser will work for most cases, but some
           specifics parsers should be used sometime.
@@ -29,7 +29,7 @@ class Modem(object):
         full_cmd = 'AT%s\r' % cmd
         tests.info('send %s', repr(full_cmd))
         self.dev.write(full_cmd)
-        self.dev.flush()
+        # self.dev.flush()
         ret = ''
         while True:
             c = self.dev.read(1)
@@ -39,7 +39,7 @@ class Modem(object):
             if ret.endswith('\r\nOK\r\n'):
                 break
         tests.info("recv : %s", repr(ret))
-        
+
         parser = parser or self.parse_answer
 
         return parser(cmd, ret)
@@ -71,12 +71,13 @@ class Modem(object):
             return self.parse_answer(cmd, ret)
 
         if answer.startswith('%s:' % cmd): # standard reply
-            ret = answer.split(': ',1)[1].strip()
+            ret = answer.split(': ', 1)[1].strip()
             return ret
         else:
             return answer
 
         raise IOError("Bad command format : %s" % answer)
+
 
 class Calypso(Modem):
 
