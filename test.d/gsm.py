@@ -119,8 +119,11 @@ class Calypso(Modem):
         time.sleep(1)
         open('%s/reset' % sys_dir, 'w').write('0')
         time.sleep(4)
-        msg = self.dev.read(256)
+        msg = self.read_line()
         tests.info("got ready messages : %s", repr(msg))
+        tests.info("send empty command to calypso")
+        self.dev.write('\r')
+        self.dev.read()
 
 
 class GSMTest(tests.Test):
