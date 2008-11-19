@@ -9,11 +9,38 @@ import serial
 
 import tests
 
+class ATError(Exception):
+    def __init__(self, msg):
+        super(ATError, self).__init__(msg)
+
+class TimeOut(ATError):
+    def __init__(self):
+        super(TimeOut, self).__init__("Timeout")
 
 class Modem(object):
 
     def __init__(self, dev):
         self.dev = serial.Serial(dev, 115200, rtscts=1, timeout=10)
+
+    def read_line(self):
+        """read one line from the modem
+
+        return the line striped (with /r/n removed at the end), if we
+        just receive '\r\n' then this return an empty line.
+        """
+        ret =''
+        while True:
+            c = self.dev.read(1)
+            if not c:
+                tests.info("modem timeout")
+                raise TimeOut()
+            ret += c
+            if ret.endswith('\r\n'):
+                break
+        ret = ret.strip()
+        if ret:
+            tests.info("recv : %s", repr(ret))
+        return ret
 
     def chat(self, cmd, parser=None):
         """Send an AT command to the modem and get the reply
@@ -30,18 +57,21 @@ class Modem(object):
         tests.info('send %s', repr(full_cmd))
         self.dev.write(full_cmd)
         # self.dev.flush()
-        ret = ''
+        ret = []
         while True:
-            c = self.dev.read(1)
-            if not c:
+            line = self.read_line()
+            if not line:
+                continue
+            if line == 'OK':
                 break
-            ret += c
-            if ret.endswith('\r\nOK\r\n'):
-                break
-        tests.info("recv : %s", repr(ret))
-
+            ret.append(line)
+            if line.startswith('+CME ERROR'):
+                raise ATError(line)
+            if line.startswith('+CMS ERROR'):
+                raise ATError(line)
+            if line.startswith('+EXT ERROR'):
+                raise ATError(line)
         parser = parser or self.parse_answer
-
         return parser(cmd, ret)
 
     def reset(self):
@@ -63,20 +93,13 @@ class Modem(object):
             else:
                 return [self.parse_answer(cmd, l) for l in answer]
 
-        if '\r\n' in answer:    # Split the answer into a list
-            ret = answer.split('\r\n')
-            ret = [line for line in ret if line] # remove blank lines
-            if ret[-1] == 'OK':
-                ret = ret[:-1]
-            return self.parse_answer(cmd, ret)
-
         if answer.startswith('%s:' % cmd): # standard reply
             ret = answer.split(': ', 1)[1].strip()
             return ret
         else:
             return answer
 
-        raise IOError("Bad command format : %s" % answer)
+        raise ATError("Bad command format : %s" % answer)
 
 
 class Calypso(Modem):
