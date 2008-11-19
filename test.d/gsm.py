@@ -133,58 +133,70 @@ class GSMTest(tests.Test):
     and on GTA03 with the Siemens MC75i modem.
     """
 
+    def chat(self, cmd, error='fail'):
+        try:
+            return self.modem.chat(cmd)
+        except ATError, e:
+            err_msg = "when sending AT%s : %s" % (cmd, e)
+            if error == 'fail':
+                self.fail(err_msg)
+            elif error == 'info':
+                self.info(err_msg)
+            elif error == 'abort':
+                raise
+
     def run(self):
         self.conf = tests.parse_conf('tests.cfg')
 
         self.modem = Calypso('/dev/ttySAC0')
         self.modem.reset()
         self.init()
-        self.basics()
-        self.network()
-        self.call()
+        self.test_basics()
+        self.test_network()
+        self.test_call()
 
     def init(self):
         """initialize the modem"""
-        self.modem.chat('')           # void command
-        self.modem.chat('E0')       # echo off
-        self.modem.chat('Z')        # reset
-        self.modem.chat('+CMEE=2')  # verbose error
+        self.chat('')           # void command
+        self.chat('E0')       # echo off
+        self.chat('Z')        # reset
+        self.chat('+CMEE=2')  # verbose error
 
-    def basics(self):
+    def test_basics(self):
         """Run some basic tests, not using the SIM"""
-        self.modem.chat('+CMUX?')      # Multiplexing mode
-        self.modem.chat('+CGMM')       # Model id
-        self.modem.chat('+CGMR')       # Firmware version
-        self.modem.chat('+CGMI')       # Manufacturer id
-        ipr = self.modem.chat('+IPR?') # Bit rate
+        self.chat('+CMUX?')      # Multiplexing mode
+        self.chat('+CGMM')       # Model id
+        self.chat('+CGMR')       # Firmware version
+        self.chat('+CGMI')       # Manufacturer id
+        ipr = self.chat('+IPR?') # Bit rate
         self.check(ipr == '115200', "check that baudrate == 115200")
-        self.modem.chat('ICF?')        # Character framing
-        self.modem.chat('S3?')         # Command line term
-        self.modem.chat('S4?')         # Response formating
-        self.modem.chat('S5?')         # Command line editing char
-        self.modem.chat('+ICF?')       # TE-TA char framing
-        self.modem.chat('+IFC?')       # Flow control (calypso != MC75i)
-        self.modem.chat('+CSCS?')      # Character set
-        self.modem.chat('+CFUN?')      # Phone functionalities
+        self.chat('ICF?')        # Character framing
+        self.chat('S3?')         # Command line term
+        self.chat('S4?')         # Response formating
+        self.chat('S5?')         # Command line editing char
+        self.chat('+ICF?')       # TE-TA char framing
+        self.chat('+IFC?')       # Flow control (calypso != MC75i)
+        self.chat('+CSCS?')      # Character set
+        self.chat('+CFUN?')      # Phone functionalities
         # self.modem.chat('+CLAC')       # List of AT commands
 
-    def network(self):
+    def test_network(self):
         """Try to register on the network"""
-        self.modem.chat('+CFUN=1') # Turn on antenna
-        self.modem.chat('+COPS=0') # Register on a network
-        self.modem.chat('+CREG?')  # check that we are registered
+        self.chat('+CFUN=1') # Turn on antenna
+        self.chat('+COPS=0') # Register on a network
+        self.chat('+CREG?')  # check that we are registered
 
-    def call(self):
+    def test_call(self):
         """Make phone calls"""
         number = self.conf.get('CALLABLE_NUMBER', None)
         if not number:
             self.info("can't find a callable number in conf file")
             self.info("skip call tests")
             return
-        self.modem.chat('D%s;' % number)
-        self.operator_confirm("number %s is ringing within ~10 seconds",
+        self.chat('D%s;' % number)
+        self.operator_confirm("number %s is ringing within ~30 seconds",
                               number)
-        self.modem.chat('H')    # release the call
+        self.chat('H')    # release the call
         self.operator_confirm("ringing stopped within ~10 seconds")
 
 if __name__ == '__main__':
