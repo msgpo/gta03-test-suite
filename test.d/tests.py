@@ -63,7 +63,6 @@ class Test(object):
             self.run()
         except Exception, e:
             self.fail("Got exception : %s", e)
-            raise
 
         if self.fail_count == 0:
             print >> out, "PASS: test successful"
