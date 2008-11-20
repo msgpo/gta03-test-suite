@@ -42,7 +42,7 @@ class Modem(object):
             tests.info("recv : %s", repr(ret))
         return ret
 
-    def chat(self, cmd, parser=None):
+    def chat(self, cmd, args=None, parser=None):
         """Send an AT command to the modem and get the reply
 
         Parameters:
@@ -53,8 +53,13 @@ class Modem(object):
           modem. The default parser will work for most cases, but some
           specifics parsers should be used sometime.
         """
-        full_cmd = 'AT%s\r' % cmd
-        tests.info('send %s', repr(full_cmd))
+        full_cmd = 'AT%s' % cmd
+        if args:
+            args = [repr(x) for x in args]
+            full_cmd = '%s%s' % (full_cmd, ','.join(args))
+        full_cmd = '%s\r' % full_cmd
+
+        tests.info('send : %s', repr(full_cmd))
         self.dev.write(full_cmd)
         # self.dev.flush()
         ret = []
@@ -65,12 +70,16 @@ class Modem(object):
             if line == 'OK':
                 break
             ret.append(line)
+
             if line.startswith('+CME ERROR'):
                 raise ATError(line)
             if line.startswith('+CMS ERROR'):
                 raise ATError(line)
             if line.startswith('+EXT ERROR'):
                 raise ATError(line)
+            if line.startswith('ERROR'):
+                raise ATError(line)
+
         parser = parser or self.parse_answer
         return parser(cmd, ret)
 
@@ -82,10 +91,10 @@ class Modem(object):
 
         This should be overriden for specific commands
         """
-        if cmd.endswith('?'):   # get the stripped command
+        if cmd.endswith('?'):
             cmd = cmd[:-1]
-        elif cmd.endswith('=?'):
-            cmd = cmd[:-2]
+        if cmd.endswith('='):
+            cmd = cmd[:-1]
 
         if isinstance(answer, list):
             if len(answer) == 1:
@@ -133,16 +142,16 @@ class GSMTest(tests.Test):
     and on GTA03 with the Siemens MC75i modem.
     """
 
-    def chat(self, cmd, error='fail'):
+    def chat(self, cmd, args=None, error='fail'):
         try:
-            return self.modem.chat(cmd)
+            return self.modem.chat(cmd, args)
         except ATError, e:
             err_msg = "when sending AT%s : %s" % (cmd, e)
             if error == 'fail':
                 self.fail(err_msg)
-            elif error == 'info':
+            if error == 'info':
                 self.info(err_msg)
-            elif error == 'abort':
+            if error == 'raise':
                 raise
 
     def run(self):
