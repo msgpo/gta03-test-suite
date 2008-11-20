@@ -6,16 +6,24 @@
 
 import time
 import serial
+import re
 
 import tests
 
+
 class ATError(Exception):
+    """Base class for AT related exceptions"""
+
     def __init__(self, msg):
         super(ATError, self).__init__(msg)
 
+
 class TimeOut(ATError):
+    """Base class for timeout exceptions"""
+
     def __init__(self):
         super(TimeOut, self).__init__("Timeout")
+
 
 class Modem(object):
 
@@ -160,8 +168,13 @@ class GSMTest(tests.Test):
         self.modem = Calypso('/dev/ttySAC0')
         self.modem.reset()
         self.init()
+        self.info("== Testing basics ==")
         self.test_basics()
+        self.info("== Testing contacts ==")
+        self.test_contacts()
+        self.info("== Testing network ==")
         self.test_network()
+        self.info("== Testing call ==")
         self.test_call()
 
     def init(self):
@@ -201,12 +214,74 @@ class GSMTest(tests.Test):
         if not number:
             self.info("can't find a callable number in conf file")
             self.info("skip call tests")
-            return
+            return True
         self.chat('D%s;' % number)
         self.operator_confirm("number %s is ringing within ~30 seconds",
                               number)
         self.chat('H')    # release the call
         self.operator_confirm("ringing stopped within ~10 seconds")
+
+    def test_contacts(self):
+        """Try to get the contacts list"""
+        self.chat('+CPIN?')
+        self.chat('+CPBS="SM"')
+
+        # with calypso, +CPBR=? sometime fails !
+        for i in range(5):
+            try:
+                ranges = self.chat('+CPBR=?', error='raise')
+                break
+            except:
+                self.info("trying again in one second")
+                time.sleep(10)
+        else:
+            return self.fail("Can't get contact range")
+
+        # parse the returned value
+        r = re.compile(r'\((\d+)-(\d+)\),\d+,\d+')
+        match = r.match(ranges)
+        self.check(match, "+CPBR=? returned a valid answer")
+        if not match:
+            return
+        i_min, i_max = int(match.group(1)), int(match.group(2))
+
+        # Get all the contacts
+        r = re.compile(r'(\d+),"(.+)",(\d+),"(.+)"')
+        all_contacts = []
+        for index in range(i_min, i_max+1):
+            contact = self.chat('+CPBR=', [index])
+            if contact:
+                match = r.match(contact)
+                self.check(match, "+CPBR=%d returned a valid answer", index)
+                i = int(match.group(1))
+                number = match.group(2)
+                type = int(match.group(3))
+                name = match.group(4)
+                all_contacts.append((name, number))
+        self.test_find_contact(all_contacts)
+
+    def test_find_contact(self, contacts):
+        """Check that we found the contact specified in the conf file
+
+        we check for a SIM_CONTACT value in the conf file, that should
+        be or the form "name:number"
+
+        Parameters:
+
+        - contacts : a list of tuple (name, number) representing the
+          contacts found in the sim
+        """
+        contact = self.conf.get('SIM_CONTACT', None)
+        if not contact:
+            self.info('no SIM_CONTACT field in the conf file, skip test')
+            return
+        name, number = contact.split(':')
+        ok = name in [x[0] for x in contacts]
+        if not self.check(ok, 'Find contact "%s" in the SIM', name):
+            return
+        ok = number in [x[1] for x in contacts if x[0] == name]
+        self.check(ok, 'Contact "%s" has number "%s"', name, number)
+
 
 if __name__ == '__main__':
     GSMTest().execute()
