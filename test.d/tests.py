@@ -85,13 +85,14 @@ class Test(object):
         print >> out, "FAIL: %s" % (msg % args)
         self.fail_count += 1
         self.total_count += 1
+        return False
 
     def check(self, cond, msg, *args):
         """Check that a condition is satisfied"""
         if not cond:
-            self.fail(msg, *args)
+            return self.fail(msg, *args)
         else:
-            self.pass_(msg, *args)
+            return self.pass_(msg, *args)
 
     def info(self, msg, *args):
         """Call this method to pass info"""
@@ -115,6 +116,7 @@ class Test(object):
         """Pass a test"""
         print >> out, "PASS: %s" % (msg % args)
         self.total_count += 1
+        return True
 
 
 if __name__ == '__main__':
