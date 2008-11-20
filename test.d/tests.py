@@ -29,6 +29,8 @@ def parse_conf(file):
     ret = {}
     file = open(file)
     for line in file:
+        if line.startswith('#'):
+            continue
         tokens = line.split('=', 1)
         if len(tokens) == 2:
             ret[tokens[0]] = tokens[1]
