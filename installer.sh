@@ -38,9 +38,30 @@ SUDO()
   if [ -z "${SUDO_UID}" -o -z "${SUDO_GID}" ]
   then
     echo SUDO: "$@"
-    sudo -K
-    sudo "$@"
-    sudo -K
+    case "${config_paranoia_level}" in
+      [mM][oO][rR][eE])
+        sudo -K
+        ;;
+      [lL][eE][sS][sS])
+        ;;
+      *)
+        ;;
+    esac
+    if AskYN Are you really sure running this as root
+    then
+      sudo "$@"
+    else
+      echo The command was skipped
+    fi
+    case "${config_paranoia_level}" in
+      [mM][oO][rR][eE])
+        sudo -K
+        ;;
+      [lL][eE][sS][sS])
+        ;;
+      *)
+        ;;
+    esac
   else
     "$@"
   fi
@@ -152,9 +173,16 @@ AskYN()
 }
 
 
+SDCardMounted()
+{
+  mount | grep -q -s "/dev/${config_device}"
+  return "$?"
+}
+
+
 UnmountSDCard()
 {
-  if mount | grep -s "/dev/${config_device}"
+  if SDCardMounted
   then
     SUDO umount  "/dev/${config_device}"* "${MountPoint}"
   fi
@@ -164,7 +192,7 @@ UnmountSDCard()
 
 MountSDCard()
 {
-  if ! mount | grep -s "/dev/${config_device}"
+  if ! SDCardMounted
   then
     SUDO mount  "/dev/${config_device}${config_partition}" "${MountPoint}"
     return $?
@@ -263,7 +291,7 @@ BuildKernel()
     )
   if [ $? -ne 0 ]
   then
-    ERROR Build kernel failed
+    ERROR Build kerrefs/remotes/origin/andy-tracking.nel failed
   fi
 }
 
@@ -395,8 +423,8 @@ ConfigVariable config_qi_update command "git pull --rebase" "Command to update Q
 ConfigVariable config_kernel directory "$(readlink -m ../kernel)" "Path to the kernel directory"
 ConfigVariable config_kernel_conf file "arch/arm/configs/gta03_defconfig" "Name of default kernel config"
 ConfigVariable config_kernel_build file "build" "Name of the kernel build script"
-ConfigVariable config_kernel_image file "uImage.bin" "Name of the kernel image"
-ConfigVariable config_kernel_install_image file "uImage.bin" "Name of the installed kernel image"
+ConfigVariable config_kernel_image file "uImage-GTA03.bin" "Name of the kernel image"
+ConfigVariable config_kernel_install_image file "uImage-GTA03.bin" "Name of the installed kernel image"
 ConfigVariable config_kernel_update command "git pull --rebase" "Command to update kernel to latest version"
 
 ConfigVariable config_rootfs directory "$(readlink -m rootfs-builder)" "Path to Root FS builder"
@@ -404,7 +432,9 @@ ConfigVariable config_rootfs_build file "mini.sh" "Name of the Root FS build scr
 
 ConfigVariable config_cache directory "$(readlink -m cache)" "Path to opkg cache directory"
 
-ConfigVariable config_fix_mode name "gta03" "fix /etc for particular hardware"
+ConfigVariable config_fix_mode word "gta03" "fix /etc for particular hardware"
+
+ConfigVariable config_paranoia_level word "more" "how paranoid are you [more/less]"
 
 WriteConfiguration
 
@@ -416,6 +446,7 @@ do
   [ -d "${KernelStageDirectory}" ] && INFO Kernel Stage Directory exists
   [ -d "${RootFSStageDirectory}" ] && INFO Root FS Stage Directory exists
   [ -f "${RootFSArchive}" ] && INFO Root FS Archive exists
+  SDCardMounted && INFO SD Card is Mounted - remember to umount before removal
   echo
   if [ X"${help}" = X"YES" ]
   then

@@ -15,9 +15,10 @@
 FEED_SECTION_LIST='all armv4t om-gta02'
 
 URL=http://downloads.openmoko.org/repository/testing
-#URL="file://${HOME}/oe/build/tmp/deploy/glibc/opk"
-
 OPKG_PROGRAM=/usr/local/openmoko/arm/bin/opkg-cl
+
+# local test
+#URL="file://${HOME}/oe/build/tmp/deploy/glibc/opk"
 #OPKG_PROGRAM=${HOME}/testing/opkg/build/src/opkg-cl
 
 # path passed to any scripts run by opkg
@@ -41,7 +42,7 @@ usage()
   echo '  --devices-normal           prefer normal table (if avaliable)'
   echo '  --remove <packages...>     remove some packages'
   echo '  --tar=archive.tar[.bz2]    create a tar of the rootfs [optional]'
-  echo '  --path=<path:path...>      restricted path fo opkg'
+  echo '  --path=<path:path...>      restricted path for opkg'
   echo
   echo notes:
   echo '  --init can be used to change the url to a different repository'
