@@ -294,16 +294,16 @@ BuildRootFS()
 {
   if [ -d "${RootFSStageDirectory}" ]
   then
-    if ! AskYN Root FS has already been built, erase and rebuild
+    if AskYN Root FS has already been built, erase and rebuild
     then
-      SUDO rm -rf "${RootFSStageDirectory}"
+      rm -rf "${RootFSStageDirectory}"
     else
-      INFO Not build Root FS
+      INFO Not building Root FS
       return 0
     fi
   fi
   (
-    SUDO "${config_rootfs}/${config_rootfs_build}" "${RootFSStageDirectory}" || exit 1
+    "${config_rootfs}/${config_rootfs_build}" "${RootFSStageDirectory}" "${config_cache}" || exit 1
     )
   if [ $? -ne 0 ]
   then
@@ -329,6 +329,47 @@ InstallRootFS()
     fi
   else
     ERROR Missing rootfs archive '(not built yes?)'
+  fi
+}
+
+
+fix()
+{
+  case "${config_fix_mode}" in
+    [gG][tT][aA]02)
+      ;;
+
+    [gG][tT][aA]03)
+      FixGTA03
+      ;;
+  esac
+}
+
+
+FixGTA03()
+{
+  (
+    MountSDCard || exit 1
+
+    local suffix='.ORIG'
+
+    SUDO find "${MountPoint}" -name '*'"${suffix}" -delete
+
+    SUDO sed --in-place="${suffix}" '
+             s@ttySAC2@ttySAC3@g;
+             s@^1:@# &@;
+             ' "${MountPoint}/etc/inittab"
+
+    SUDO sed --in-place="${suffix}" '
+             \@^/dev/mtdblock4@{s@@/dev/mmcblk0p2@;s@jffs2@auto@;P;D}
+             \@^/dev/mmcblk0p1@{s@@/dev/mtdblock4@;s@\([[:space:]]\)auto@\1jffs2@;P;D}
+             ' "${MountPoint}/etc/fstab"
+
+    exit "$?"
+    )
+  if [ $? -ne 0 ]
+  then
+    ERROR FixGTA03 failed
   fi
 }
 
@@ -361,6 +402,10 @@ ConfigVariable config_kernel_update command "git pull --rebase" "Command to upda
 ConfigVariable config_rootfs directory "$(readlink -m rootfs-builder)" "Path to Root FS builder"
 ConfigVariable config_rootfs_build file "mini.sh" "Name of the Root FS build script"
 
+ConfigVariable config_cache directory "$(readlink -m cache)" "Path to opkg cache directory"
+
+ConfigVariable config_fix_mode name "gta03" "fix /etc for particular hardware"
+
 WriteConfiguration
 
 help=YES
@@ -383,6 +428,8 @@ do
     echo 'update  - use git to update the qi and the kernel'
     echo 'ls      - list the files on the SD Card'
     echo 'lynx    - browse the files on the SD Card'
+    echo 'umount  - unmount the SD card'
+    echo 'stage   - browse the files in the staging directory'
     echo 'clean   - clean kernel and QI'
     echo 'unstage - clean kernel and root fs staging directories'
     echo 'conf    - display configuration'
@@ -427,6 +474,7 @@ do
     in*)
       AskYN Install Root FS && InstallRootFS
       AskYN Install Kernel && InstallKernel
+      AskYN Apply fixes for "${config_fix_mode}" && fix
       ;;
     up*)
       ${config_qi_update}
@@ -443,6 +491,12 @@ do
       MountSDCard
       lynx "${MountPoint}"
       ;;
+    st*)
+      lynx "${BuildDirectory}"
+      ;;
+    um*)
+      UnmountSDCard
+      ;;
     *)
       echo Invalid command: ${command}
       ;;
@@ -451,4 +505,3 @@ do
 done
 
 UnmountSDCard
-

@@ -5,34 +5,69 @@
 # AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 
+# normalise the path names
+ThisDirectory="$(readlink -m "$(dirname "$0")")"
+
+ROOT_BUILDER="${ThisDirectory}/rootfs-builder.sh"
+
+# a subdirectory called 'restricted' where this script is located
+# contains the binaries that overide the system ones
+# It is very bad to have /bin and /usr/bin here, but the 'postinst'
+# scripts are shell scripts so need access to all the utilities
+# Just DO NOT sudo this
+RESTRICTED_PATH="${ThisDirectory}/restricted:/bin:/usr/bin"
+
+
 usage()
 {
   [ -n "$1" ] && echo error: $*
   echo
-  echo usage: $(basename "$0") '/path/to/rootfs'
+  echo usage: $(basename "$0") '/path/to/rootfs [/path/to/cache]'
   exit 1
 }
 
-[ -z "$1" ] && usage missing rootfs path
-[ -d "$1" ] && usage rootfs directory: $1 directory already exists
-[ -e "$1" ] && usage rootfs directory: $1 already exists as a file
+RBLD()
+{
+  local rc=0
+  if [ -n "${CacheDirectory}" ]
+  then
+    ${ROOT_BUILDER} --rootfs="${RootfsDirectory}" --path="${RESTRICTED_PATH}" --cache="${CacheDirectory}" "$@"
+    rc="$?"
+  else
+    ${ROOT_BUILDER} --rootfs="${RootfsDirectory}" --path="${RESTRICTED_PATH}" "$@"
+    rc="$?"
+  fi
 
-ROOT_BUILDER_PROGRAM="$(readlink -m "$(dirname "$0")")/rootfs-builder.sh"
-ROOT_FILE_SYSTEM="$(readlink -m "$1")"
+  [ "${rc}" -ne 0 ] && usage Rooot Builder script failed
+}
 
-ROOT_BUILDER="${ROOT_BUILDER_PROGRAM} --rootfs=${ROOT_FILE_SYSTEM}"
+
+# main program
+
+RootfsDirectory="$1"; shift
+CacheDirectory="$1"; shift
+
+[ -z "${RootfsDirectory}" ] && usage missing rootfs path
+RootfsDirectory="$(readlink -m "${RootfsDirectory}")"
+
+[ -n "${CacheDirectory}" ] && CacheDirectory="$(readlink -m "${CacheDirectory}")"
+
+[ -d "${RootfsDirectory}" ] && usage rootfs directory: ${RootfsDirectory} directory already exists
+[ -e "${RootfsDirectory}" ] && usage rootfs directory: ${RootfsDirectory} already exists as a file
+
+[ -e "${CacheDirectory}" -a ! -d "${CacheDirectory}" ] && usage cache directory: ${CacheDirectory} must be a useable directory
 
 # create the basic image
-${ROOT_BUILDER} --init
-${ROOT_BUILDER} --install task-openmoko-linux
-${ROOT_BUILDER} --device-minimal
+RBLD --init
+RBLD --install task-openmoko-linux
+RBLD --device-minimal
 
-${ROOT_BUILDER} --remove exquisite
-${ROOT_BUILDER} --remove exquisite-themes
-${ROOT_BUILDER} --remove exquisite-theme-freerunner
+RBLD --remove exquisite
+RBLD --remove exquisite-themes
+RBLD --remove exquisite-theme-freerunner
 
 # install some additional apps
-${ROOT_BUILDER} --install python-lang
+RBLD --install python-lang
 
 # finally make a tar file
-${ROOT_BUILDER} --tar="${ROOT_FILE_SYSTEM}.tar.bz2"
+RBLD --tar="${RootfsDirectory}.tar.bz2"

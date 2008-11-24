@@ -1,5 +1,63 @@
 The installer.sh script is meant as a simple interface
 to various other scripts to allow building an SD Card image.
 
-It is an interactive script to build various parts of the
-the image the format and write the image.
+It is an interactive script to build various parts of the the image
+the format and write the image.
+
+
+Problems with root builder scripts:
+
+1. Lots of the script runs as root - it should be possible to use
+   fakeroot for most of it.  The SD card mount and final install will
+   have to be done as root to ensure correct permissions.
+
+2. The native opkg does not run the packages postinst scripts this
+   results in an almost unusable root fs.
+
+
+  Number 2 is more difficult since a lot of packages require modifying
+/etc/rc?.d /etc/alternatives or one of a number of these kinds of
+"registries."  Most of the scripts that do this are in perl, a couple
+in python and rest is shell script.
+
+  Some of the postinst scripts are just a list of shell commands, cp,
+mv, ln -s etc.
+
+  It may be possible to do the following when building the root fs:
+
+1. mount a tmpfs on ..../rootfs/native-tools and place into here
+   copies of busybox (and its symlinks) and compiled versions of the
+   update tools.  opkg -offline would set the path to this directory
+   and chroot into ..../rootfs to run the postinst script.
+
+2. If the scripts handle the prefix ($D) correctly the just run the
+   scripts ensuring the prefix in exported to the environment.
+
+Checking my OE build directory for my minimum image
+
+  a. some scripts do nothing if $D set -> OK
+  b. ldconfig not called if $D set     -> OK
+  c. update-rc.d called with -r $D     -> OK (no spaces in path name of $D)
+  d. update-alternatives always called with absolute path
+       -> a wrapper script might be possible, but I think not
+       -> there is a version which could be chrooted?
+  e. actually there are shell script version of a couple of these in OE
+       -> could these be used
+
+Conclusions:
+
+  After some testing I thing the following should be sufficient.
+
+1. Modify opkg so it provides a specific path when in --offline mode.
+   Only execute the pre/post scripts in offline mode if this path is
+   present, otherwise keep existing behaviour.
+
+2. Modify OE postinst scripts to add missing $D environment variable
+   Only found those which are in task-openmoko-linux which is all I
+   require at present.
+
+3. run opkg under fakeroot (not sudo) so it cannot corrupt things
+   because of mistakes in OE pre/post scripts.
+
+4. Provide some update-* scripts that know about $D
+   or $OPKG_OFFLINE_ROOT
