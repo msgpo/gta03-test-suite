@@ -332,7 +332,7 @@ if [ -n "${archive}" ]
 then
   echo creating archive of the root file system: ${archive}
 
-  local flag=
+  flag=
 
   [ X"${archive}" != X"${archive%.bz2}" ] && flag=j
   [ X"${archive}" != X"${archive%.gz}" ] && flag=z
