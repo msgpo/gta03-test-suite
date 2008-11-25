@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
 # DESCRIPTION: A simple installer for test images
@@ -14,57 +14,81 @@
 BuildDirectory=$(readlink -m tmp)
 ConfigurationFile=$(readlink -m .installerrc)
 
-ConfigurationChanged=NO
 
-KernelStageDirectory="${BuildDirectory}/kernel"
-RootFSStageDirectory="${BuildDirectory}/rootfs"
+# configuration
+
+# basic settings
+StageDirectory="${BuildDirectory}/rootfs"
+
 MountPoint="${BuildDirectory}/mnt"
+
 RootFSArchive="${BuildDirectory}/rootfs.tar.bz2"
 
+# set to YES to completely remove the build directory
+# override by command line option --clean / --no-clean
+clean="NO"
+
+# format the SD Card if the is set to YES
+# override by command line option --format / --no-format
+format="NO"
+
+# enable prompting of sudo commands
+# override by command line option --prompt / --no-prompt
+SudoPrompt="YES"
+
+# keep autorisation for sudo
+# override by command line option --keep / --no-keep
+KeepAuthorisation="NO"
+
+# the cache directory
+CacheDirectory="${BuildDirectory}/cache"
+
+# SD Card info
+SDCardDevice="sdb"
+SDCardPartition="2"
+
+# Path to the QI directory and its associated files
+QiDirectory="$(readlink -m ../qi)"
+QiInstaller="6410-partition-sd.sh"
+QiImage="image/qi-s3c6410-"
+
+# where to obtain kernel
+KernelDirectory="$(readlink -m ../kernel)"
+KernelImage="uImage-GTA03.bin"
+
+# how to run the rootfs builder
+RootFSBuilderDirectory="$(readlink -m rootfs-builder)"
+RootFSBuilder="${RootFSBuilderDirectory}/rootfs-builder.sh"
+
+# path for pre/post package scripts
+RestrictedPath="${RootFSBuilderDirectory}/restricted:/bin:/usr/bin"
+
+# the database for fakeroot must be the same as used by rootfs-builder.sh
+FakerootDatabase="${StageDirectory}.frdb"
+
+# type of image
+ImageType="gta03"
+KernelDirectory="$(readlink -m ../kernel)"
+KernelImage="uImage-GTA03.bin"
+
+
+# just in case we want to override any of the above
+[ -e "${ConfigurationFile}" ] && . "${ConfigurationFile}"
+
+
+# functions
 
 usage()
 {
   [ -n "$1" ] && echo error: $*
   echo
   echo usage: $(basename "$0") '<options>'
+  echo '  --clean      Completely remove build directory and package cache'
+  echo '  --format     Erase and recreate SD Card filesystems'
+  echo '  --prompt     Ask yes/no before sudo'
+  echo '  --keep       Keep sudo authorisation'
+  echo '  --no-XXX     Turn off an option'
   exit 1
-}
-
-
-# diplay a command an ask for permission to sudo it
-# if already under sudo the just run the command
-SUDO()
-{
-  if [ -z "${SUDO_UID}" -o -z "${SUDO_GID}" ]
-  then
-    echo SUDO: "$@"
-    case "${config_paranoia_level}" in
-      [mM][oO][rR][eE])
-        sudo -K
-        ;;
-      [lL][eE][sS][sS])
-        ;;
-      *)
-        ;;
-    esac
-    if AskYN Are you really sure running this as root
-    then
-      sudo "$@"
-    else
-      echo The command was skipped
-    fi
-    case "${config_paranoia_level}" in
-      [mM][oO][rR][eE])
-        sudo -K
-        ;;
-      [lL][eE][sS][sS])
-        ;;
-      *)
-        ;;
-    esac
-  else
-    "$@"
-  fi
 }
 
 
@@ -82,79 +106,14 @@ ERROR()
 }
 
 
-ConfigVariable()
-{
-  local variable type default description current
-  variable="$1"; shift
-  type="$1"; shift
-  default="$1"; shift
-  description="$1"; shift
-
-  eval current=\"\${${variable}}\"
-
-  [ -n "${current}" ] && return
-
-  echo The variable ${variable} has not been configured yet
-
-  read -p "${variable} = [${default}]? " current
-  [ -z "${current}" ] && current="${default}"
-
-  eval "${variable}"="\"${current}\""
- 
-  ConfigurationChanged=YES
-}
-
-
-# this routine is bash specific
-AllVariables()
-{
-  echo ${!config_@}
-}
-
-
-WriteConfiguration()
-{
-  local variable value
-
-  if [ X"${ConfigurationChanged}" = X"YES" ]
-  then
-    rm -f "${ConfigurationFile}"
-
-    for variable in $(AllVariables)
-    do
-      eval value=\"\${${variable}}\"
-      echo ${variable}="'"${value}"'" >> "${ConfigurationFile}"
-    done
-  fi
-}
-
-
-DisplayConfiguration()
-{
-  local variable value
-
-  echo Contents of: ${ConfigurationFile}
-  echo
-
-  for variable in $(AllVariables)
-  do
-    eval value=\"\${${variable}}\"
-    echo ${variable}="'"${value}"'"
-  done
-
-  echo
-  echo Configuration that is not part of configuration file
-  echo
-  echo 'build directory   =' ${BuildDirectory}
-  echo 'kernel staging    =' ${KernelStageDirectory}
-  echo 'root fs staging   =' ${RootFSStageDirectory}
-  echo 'local mount point =' ${MountPoint}
-}
-
-
 AskYN()
 { 
   local yorn junk rc
+  if [ X"${SudoPrompt}" != X"YES" ]
+  then
+    # alway assume yes if not prompting
+    return 0
+  fi
   while read -p "$* [y/n]? " yorn junk
   do
     case "${yorn}" in
@@ -173,9 +132,86 @@ AskYN()
 }
 
 
+SudoReset()
+{
+  if [ X"${KeepAuthorisation}" != X"YES" ]
+  then
+    sudo -K
+  fi
+}
+
+
+# diplay a command an ask for permission to sudo it
+# if already under sudo the just run the command
+SUDO()
+{
+  if [ -z "${SUDO_UID}" -o -z "${SUDO_GID}" ]
+  then
+    echo SUDO: "$@"
+
+    SudoReset
+    if AskYN Are you really sure running this as root
+    then
+      sudo "$@"
+    else
+      echo The command was skipped
+    fi
+    SudoReset
+  else
+    "$@"
+  fi
+}
+
+
+FakeRoot()
+{
+  local load=''
+  if [ -e "${FakerootDatabase}" ]
+  then
+    fakeroot -s "${FakerootDatabase}" -i "${FakerootDatabase}" -- "$@"
+  else
+    fakeroot -s "${FakerootDatabase}" -- "$@"
+  fi
+}
+
+
+RBLD()
+{
+  local rc=0
+  if [ -n "${CacheDirectory}" ]
+  then
+    ${RootFSBuilder} --rootfs="${StageDirectory}" --path="${RestrictedPath}" --cache="${CacheDirectory}" "$@"
+    rc="$?"
+  else
+    ${RootFSBuilder} --rootfs="${StageDirectory}" --path="${RestrictedPath}" "$@"
+    rc="$?"
+  fi
+
+  [ "${rc}" -ne 0 ] && usage Rooot Builder script failed
+}
+
+
+BuildRootFileSystem()
+{
+  rm -f "${FakerootDatabase}"
+  [ -n "${StageDirectory}" ] && rm -rf "${StageDirectory}"
+
+  RBLD --init
+  RBLD --install task-openmoko-linux
+  RBLD --device-minimal
+
+  RBLD --remove exquisite
+  RBLD --remove exquisite-themes
+  RBLD --remove exquisite-theme-freerunner
+
+  # install some additional apps
+  RBLD --install python-lang
+}
+
+
 SDCardMounted()
 {
-  mount | grep -q -s "/dev/${config_device}"
+  mount | grep -q -s "/dev/${SDCardDevice}"
   return "$?"
 }
 
@@ -184,7 +220,7 @@ UnmountSDCard()
 {
   if SDCardMounted
   then
-    SUDO umount  "/dev/${config_device}"* "${MountPoint}"
+    SUDO umount  "/dev/${SDCardDevice}"* "${MountPoint}"
   fi
   return 0
 }
@@ -194,176 +230,35 @@ MountSDCard()
 {
   if ! SDCardMounted
   then
-    SUDO mount  "/dev/${config_device}${config_partition}" "${MountPoint}"
+    SUDO mount  "/dev/${SDCardDevice}${SDCardPartition}" "${MountPoint}"
     return $?
   fi
   return 0
 }
 
 
-CleanQI()
+# temporary until we have a package
+GetTheKernel()
 {
   (
-    cd "${config_qi}" || exit 1
+    cd "${KernelDirectory}" || ERROR cannt cd to: ${KernelDirectory}
 
-    make clean || exit 1
+    cp -p "${KernelImage}" "${StageDirectory}/boot/" || ERROR faile to copy the kernel
 
+    env INSTALL_MOD_PATH="${StageDirectory}" make ARCH=arm modules_install || ERROR failed to install modules
     )
   if [ $? -ne 0 ]
   then
-    ERROR Clean QI failed
+    ERROR Install kernel failed
   fi
 }
 
 
-BuildQI()
+
+# temporary hacks until om-gta03 established
+ApplyFixes()
 {
-  local action local cwd qi card list
-  action="$1"; shift
-
-  case "${action}" in
-    no*)
-      action=no-format
-      ;;
-    *)
-      action=''
-      ;;
-  esac
-
-  list='sdhc sd'
-
-  UnmountSDCard || exit 1
-
-  cwd="${PWD}"
-
-  (
-    cd "${config_qi}" || exit 1
-
-    "${config_qi}/${config_qi_build}" || exit 1
-
-    qi=$(ls -1 "${config_qi_image}"* | head -n 1)
-
-    INFO qi = ${qi}
-
-    for card in ${list}
-    do
-      SUDO "${config_qi}/${config_qi_install}" "${config_device}" "${card}" "${qi}" "${action}"
-      action=no-format
-    done
-
-    )
-  if [ $? -ne 0 ]
-  then
-    ERROR Install QI failed
-  fi
-}
-
-
-CleanKernel()
-{
-  (
-    cd "${config_kernel}" || exit 1
-
-    make clean || exit 1
-
-    )
-  if [ $? -ne 0 ]
-  then
-    ERROR Clean kernel failed
-  fi
-}
-
-
-BuildKernel()
-{
-  (
-    cd "${config_kernel}" || exit 1
-
-    cp "${config_kernel_conf}" .config || exit 1
-
-    "${config_kernel}/${config_kernel_build}" || exit 1
-
-    ##env INSTALL_MOD_PATH="${KernelStageDirectory}" make ARCH=arm install || exit 1
-    cp -p "${config_kernel_image}" "${KernelStageDirectory}" || exit 1
-
-    env INSTALL_MOD_PATH="${KernelStageDirectory}" make ARCH=arm modules_install || exit 1
-
-    )
-  if [ $? -ne 0 ]
-  then
-    ERROR Build kerrefs/remotes/origin/andy-tracking.nel failed
-  fi
-}
-
-
-InstallKernel()
-{
-  if [ -f  "${KernelStageDirectory}/${config_kernel_image}" ]
-  then
-    (
-      MountSDCard || exit 1
-
-      SUDO cp -p "${KernelStageDirectory}/${config_kernel_image}" "${MountPoint}/boot/${config_kernel_install_image}" || exit 1
-      SUDO cp -pr "${KernelStageDirectory}/lib/modules" "${MountPoint}/lib/" || exit 1
-
-      exit "$?"
-      )
-    if [ $? -ne 0 ]
-    then
-      ERROR Install kernel failed
-    fi
-  else
-    ERROR No kernel image to install '(not built yes?)'
-  fi
-}
-
-
-BuildRootFS()
-{
-  if [ -d "${RootFSStageDirectory}" ]
-  then
-    if AskYN Root FS has already been built, erase and rebuild
-    then
-      rm -rf "${RootFSStageDirectory}"
-    else
-      INFO Not building Root FS
-      return 0
-    fi
-  fi
-  (
-    "${config_rootfs}/${config_rootfs_build}" "${RootFSStageDirectory}" "${config_cache}" || exit 1
-    )
-  if [ $? -ne 0 ]
-  then
-    ERROR Build Root FS failed
-  fi
-}
-
-
-InstallRootFS()
-{
-  if [ -f "${RootFSArchive}" ]
-  then
-    (
-      MountSDCard || exit 1
-
-      SUDO tar xf "${RootFSArchive}" -C "${MountPoint}/"
-
-      exit "$?"
-    )
-    if [ $? -ne 0 ]
-    then
-      ERROR install Root FS failed
-    fi
-  else
-    ERROR Missing rootfs archive '(not built yes?)'
-  fi
-}
-
-
-fix()
-{
-  case "${config_fix_mode}" in
+  case "${ImageType}" in
     [gG][tT][aA]02)
       ;;
 
@@ -377,21 +272,27 @@ fix()
 FixGTA03()
 {
   (
-    MountSDCard || exit 1
-
     local suffix='.ORIG'
 
-    SUDO find "${MountPoint}" -name '*'"${suffix}" -delete
+    FakeRoot find "${StageDirectory}" -name '*'"${suffix}" -delete
 
-    SUDO sed --in-place="${suffix}" '
+    # correct console, remove framebuffer login
+    FakeRoot sed --in-place="${suffix}" '
              s@ttySAC2@ttySAC3@g;
              s@^1:@# &@;
-             ' "${MountPoint}/etc/inittab"
+             ' "${StageDirectory}/etc/inittab"
 
-    SUDO sed --in-place="${suffix}" '
+    # correct rootfs device
+    FakeRoot sed --in-place="${suffix}" '
              \@^/dev/mtdblock4@{s@@/dev/mmcblk0p2@;s@jffs2@auto@;P;D}
              \@^/dev/mmcblk0p1@{s@@/dev/mtdblock4@;s@\([[:space:]]\)auto@\1jffs2@;P;D}
-             ' "${MountPoint}/etc/fstab"
+             ' "${StageDirectory}/etc/fstab"
+
+    # fix busybox splash-write error
+    FakeRoot rm -f "${StageDirectory}/bin/true"
+    FakeRoot touch "${StageDirectory}/bin/true"
+    FakeRoot chown 0:0 "${StageDirectory}/bin/true"
+    FakeRoot chmod 755 "${StageDirectory}/bin/true"
 
     exit "$?"
     )
@@ -402,137 +303,133 @@ FixGTA03()
 }
 
 
-# main program
-# ============
+InstallQi()
+{
+  local action local qi card list
+  action="$1"; shift
 
-[ -e "${ConfigurationFile}" ] && . "${ConfigurationFile}"
-
-mkdir -p "${BuildDirectory}" || usage failed to create ${BuildDirectory}
-mkdir -p "${KernelStageDirectory}" || usage failed to create ${KernelStageDirectory}
-mkdir -p "${MountPoint}" || usage failed to create ${MountPoint}
-
-ConfigVariable config_device device "sdb" "Name of the SD card device"
-ConfigVariable config_partition device "2" "Number of the SD card partition [1..4]"
-
-ConfigVariable config_qi directory "$(readlink -m ../qi)" "Path to the QI directory"
-ConfigVariable config_qi_build file "build" "name of the QI build script"
-ConfigVariable config_qi_install file "6410-partition-sd.sh" "Name of the QI installer script"
-ConfigVariable config_qi_image file "image/qi-s3c6410-" "Prefix of QI image"
-ConfigVariable config_qi_update command "git pull --rebase" "Command to update QI to latest version"
-
-ConfigVariable config_kernel directory "$(readlink -m ../kernel)" "Path to the kernel directory"
-ConfigVariable config_kernel_conf file "arch/arm/configs/gta03_defconfig" "Name of default kernel config"
-ConfigVariable config_kernel_build file "build" "Name of the kernel build script"
-ConfigVariable config_kernel_image file "uImage-GTA03.bin" "Name of the kernel image"
-ConfigVariable config_kernel_install_image file "uImage-GTA03.bin" "Name of the installed kernel image"
-ConfigVariable config_kernel_update command "git pull --rebase" "Command to update kernel to latest version"
-
-ConfigVariable config_rootfs directory "$(readlink -m rootfs-builder)" "Path to Root FS builder"
-ConfigVariable config_rootfs_build file "mini.sh" "Name of the Root FS build script"
-
-ConfigVariable config_cache directory "$(readlink -m cache)" "Path to opkg cache directory"
-
-ConfigVariable config_fix_mode word "gta03" "fix /etc for particular hardware"
-
-ConfigVariable config_paranoia_level word "more" "how paranoid are you [more/less]"
-
-WriteConfiguration
-
-help=YES
-
-while :
-do
-  echo
-  [ -d "${KernelStageDirectory}" ] && INFO Kernel Stage Directory exists
-  [ -d "${RootFSStageDirectory}" ] && INFO Root FS Stage Directory exists
-  [ -f "${RootFSArchive}" ] && INFO Root FS Archive exists
-  SDCardMounted && INFO SD Card is Mounted - remember to umount before removal
-  echo
-  if [ X"${help}" = X"YES" ]
-  then
-    echo 'help    - This message'
-    echo 'format  - format SD card and install QI'
-    echo 'qi      - reinstall qi'
-    echo 'kernel  - configure, build and stage kernel'
-    echo 'root    - build and stage root file system'
-    echo 'install - install kernel and root file system'
-    echo 'update  - use git to update the qi and the kernel'
-    echo 'ls      - list the files on the SD Card'
-    echo 'lynx    - browse the files on the SD Card'
-    echo 'umount  - unmount the SD card'
-    echo 'stage   - browse the files in the staging directory'
-    echo 'clean   - clean kernel and QI'
-    echo 'unstage - clean kernel and root fs staging directories'
-    echo 'conf    - display configuration'
-    echo 'exit    - end program'
-    echo
-    help=NO
-  fi
-  command=''
-  while [ -z "${command}" ]
-  do
-    read -p 'Command: ' command junk
-  done
-
-  case "${command}" in
-    ex*|x|qu*)
-      break
-      ;;
-    he*|\?)
-      help=YES
-      ;;
-    un*)
-      [ -n "${KernelStageDirectory}" ] && SUDO rm -rf "${KernelStageDirectory}"
-      [ -n "${RootFSStageDirectory}" ] && SUDO rm -rf "${RootFSStageDirectory}"
-      [ -n "${RootFSArchive}" ] && SUDO rm -rf "${RootFSArchive}"
-      ;;
-    cl*)
-      CleanQI
-      CleanKernel
-      ;;
-    fo*)
-      BuildQI format
-      ;;
-    qi)
-      BuildQI no-format
-      ;;
-    ke*)
-      BuildKernel
-      ;;
-    ro*)
-      BuildRootFS
-      ;;
-    in*)
-      AskYN Install Root FS && InstallRootFS
-      AskYN Install Kernel && InstallKernel
-      AskYN Apply fixes for "${config_fix_mode}" && fix
-      ;;
-    up*)
-      ${config_qi_update}
-      ${config_kernel_update}
-      ;;
-    co*)
-      DisplayConfiguration
-      ;;
-    ls)
-      MountSDCard
-      ls -lR "${RootFSStageDirectory}" | less
-      ;;
-    ly*)
-      MountSDCard
-      lynx "${MountPoint}"
-      ;;
-    st*)
-      lynx "${BuildDirectory}"
-      ;;
-    um*)
-      UnmountSDCard
+  case "${action}" in
+    [nN][oO]*)
+      action=no-format
       ;;
     *)
-      echo Invalid command: ${command}
+      action=''
       ;;
   esac
 
+  list='sdhc sd'
+
+  UnmountSDCard || exit 1
+
+  qi=$(ls -1 "${QiDirectory}/${QiImage}"* | head -n 1)
+
+  INFO qi = ${qi}
+
+  for card in ${list}
+  do
+    SUDO "${QiDirectory}/${QiInstaller}" "${SDCardDevice}" "${card}" "${qi}" "${action}"
+    action=no-format
+  done
+}
+
+
+InstallRootFileSystem()
+{
+  if [ -f "${RootFSArchive}" ]
+  then
+    (
+      MountSDCard || exit 1
+
+      SUDO tar xf "${RootFSArchive}" -C "${MountPoint}/"
+      rc="$?"
+
+      UnmountSDCard || true
+
+      exit "$?"
+    )
+    if [ $? -ne 0 ]
+    then
+      ERROR install Root FS failed
+    fi
+  else
+    ERROR Missing rootfs archive '(not built yes?)'
+  fi
+}
+
+
+# main program
+# ============
+
+while [ $# -gt 0 ]
+do
+  case "$1" in
+    --clean)
+      clean=YES
+      ;;
+    --no-clean)
+      clean=NO
+      ;;
+    --format)
+      format=YES
+      ;;
+    --no-format)
+      format=NO
+      ;;
+    --prompt)
+      SudoPrompt=YES
+      ;;
+    --no-prompt)
+      SudoPrompt=NO
+      ;;
+    --keep)
+      KeepAuthorisation=YES
+      ;;
+    --no-keep)
+      KeepAuthorisation=NO
+      ;;
+    -h|--help)
+      usage
+      ;;
+    -*)
+      usage unrecognised option $1
+      ;;
+    --|*)
+      break
+      ;;
+  esac
+  shift
 done
 
+UnmountSDCard
+
+if [ X"${clean}" = X"YES" -a -d "${BuildDirectory}" ]
+then
+  rm -rf "${BuildDirectory}"
+fi
+
+mkdir -p "${BuildDirectory}" || usage failed to create ${BuildDirectory}
+mkdir -p "${StageDirectory}" || usage failed to create ${StageDirectory}
+mkdir -p "${CacheDirectory}" || usage failed to create ${StageDirectory}
+mkdir -p "${MountPoint}" || usage failed to create ${MountPoint}
+
+
+# build an image in the stage directory
+BuildRootFileSystem
+GetTheKernel
+ApplyFixes
+
+# create an archive of the stage directory
+rm -f "${RootFSArchive}"
+RBLD --tar="${RootFSArchive}"
+
+# install to SD Card
+if [ X"${format}" = X"YES" ]
+then
+  InstallQi format
+else
+  InstallQi no-format
+fi
+InstallRootFileSystem
+
+# finished
 UnmountSDCard
