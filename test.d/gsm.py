@@ -55,26 +55,52 @@ class Modem(object):
             tests.info("recv : %s", repr(ret))
         return ret
 
-    def chat(self, cmd, args=None, parser=None):
+    def as_arg(self, arg):
+        """convert python object into at command arguments string"""
+        if isinstance(arg, (list, tuple)):
+            return ','.join([self.as_arg(x) for x in arg])
+        if isinstance(arg, str):
+            return '"%s"' % arg
+        return repr(arg)
+
+    def write(self, str):
+        """write to the modem"""
+        tests.info('send : %s', repr(str))
+        self.dev.write(str)
+
+    def read(self, n=1):
+        """read from the modem"""
+        ret = self.dev.read(n)
+        tests.info("recv : %s", repr(ret))
+        return ret
+
+    def chat(self, cmd, *args, **kargs):
         """Send an AT command to the modem and get the reply
 
         Parameters:
 
         - cmd : the AT command we send (not including 'AT')
 
-        - parser : the method we use to parse the reply from the
-          modem. The default parser will work for most cases, but some
-          specifics parsers should be used sometime.
+        - args : the list of arguments passed to the command
+
+        keyword parameters:
+
+        - parser : can be used to define a specific parsing function
+          for the answer from the modem
         """
+        parser = kargs.get('parser', self.parse_answer)
+
         full_cmd = 'AT%s' % cmd
-        if args:
-            args = [repr(x) for x in args]
-            full_cmd = '%s%s' % (full_cmd, ','.join(args))
+        arg = self.as_arg(args)
+        full_cmd = '%s%s' % (full_cmd, arg)
         full_cmd = '%s\r' % full_cmd
 
-        tests.info('send : %s', repr(full_cmd))
-        self.dev.write(full_cmd)
-        # self.dev.flush()
+        self.write(full_cmd)
+        ret = self.read_answer()
+        return parser(cmd, ret)
+
+    def read_answer(self):
+        """read an answer from the modem"""
         ret = []
         while True:
             line = self.read_line()
@@ -92,9 +118,7 @@ class Modem(object):
                 raise ATError(line)
             if line.startswith('ERROR'):
                 raise ATError(line)
-
-        parser = parser or self.parse_answer
-        return parser(cmd, ret)
+        return ret
 
     def reset(self):
         pass
@@ -155,9 +179,10 @@ class GSMTest(tests.Test):
     and on GTA03 with the Siemens MC75i modem.
     """
 
-    def chat(self, cmd, args=None, error='fail'):
+    def chat(self, cmd, *args, **kargs):
+        error = kargs.get('error', 'fail')
         try:
-            return self.modem.chat(cmd, args)
+            return self.modem.chat(cmd, *args, **kargs)
         except ATError, e:
             err_msg = "when sending AT%s : %s" % (cmd, e)
             if error == 'fail':
@@ -187,7 +212,7 @@ class GSMTest(tests.Test):
         self.chat('')           # void command
         self.chat('E0')       # echo off
         self.chat('Z')        # reset
-        self.chat('+CMEE=2')  # verbose error
+        self.chat('+CMEE=', 2)  # verbose error
 
     def test_basics(self):
         """Run some basic tests, not using the SIM"""
@@ -209,8 +234,8 @@ class GSMTest(tests.Test):
 
     def test_network(self):
         """Try to register on the network"""
-        self.chat('+CFUN=1') # Turn on antenna
-        self.chat('+COPS=0') # Register on a network
+        self.chat('+CFUN=', 1) # Turn on antenna
+        self.chat('+COPS=', 0) # Register on a network
         self.chat('+CREG?')  # check that we are registered
 
     def test_call(self):
@@ -229,7 +254,7 @@ class GSMTest(tests.Test):
     def test_contacts(self):
         """Try to get the contacts list"""
         self.chat('+CPIN?')
-        self.chat('+CPBS="SM"')
+        self.chat('+CPBS=', 'SM')
 
         # with calypso, +CPBR=? sometime fails !
         for i in range(5):
@@ -254,7 +279,7 @@ class GSMTest(tests.Test):
         r = re.compile(r'(\d+),"(.+)",(\d+),"(.+)"')
         all_contacts = []
         for index in range(i_min, i_max+1):
-            contact = self.chat('+CPBR=', [index])
+            contact = self.chat('+CPBR=', index)
             if contact:
                 match = r.match(contact)
                 self.check(match, "+CPBR=%d returned a valid answer", index)
