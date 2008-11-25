@@ -23,6 +23,12 @@ class ATError(Exception):
         super(ATError, self).__init__(msg)
 
 
+class SIMBusyError(ATError):
+
+    def __init__(self):
+        super(SIMBusyError, self).__init__('SIM busy')
+
+
 class TimeOut(ATError):
     """Base class for timeout exceptions"""
 
@@ -113,6 +119,8 @@ class Modem(object):
             if line.startswith('+CME ERROR'):
                 raise ATError(line)
             if line.startswith('+CMS ERROR'):
+                if 'SIM busy' in line:
+                    raise SIMBusyError()
                 raise ATError(line)
             if line.startswith('+EXT ERROR'):
                 raise ATError(line)
