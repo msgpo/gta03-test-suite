@@ -38,7 +38,7 @@ def parse_conf(file):
             continue
         tokens = line.split('=', 1)
         if len(tokens) == 2:
-            ret[tokens[0]] = tokens[1]
+            ret[tokens[0]] = tokens[1].strip()
     return ret
 
 
