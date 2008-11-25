@@ -214,6 +214,10 @@ class GSMTest(tests.Test):
         self.test_network()
         self.info("== Testing call ==")
         self.test_call()
+        self.info("== Testing SMS ==")
+        self.test_sms()
+        self.info("== Testing PDU SMS ==")
+        self.test_pdu_sms()
 
     def init(self):
         """initialize the modem"""
@@ -320,6 +324,66 @@ class GSMTest(tests.Test):
         ok = number in [x[1] for x in contacts if x[0] == name]
         self.check(ok, 'Contact "%s" has number "%s"', name, number)
 
+    def _try_send_sms(self, number):
+        """try to send an SMS, may raise SIMBusyError"""
+        self.chat('+CMGF=', 1)  # Set text mode
+        self.modem.write('AT+CMGS="%s"\r' % number)
+        self.modem.read(4)      # Wait for the '>'
+        self.modem.write('hello')
+        self.modem.write('\x1a')
+        self.modem.read_answer()
+
+    def _try_send_pdu_sms(self, number):
+        """try to send a PDU SMS, may raise SIMBusyError"""
+        # We need to invert every two characters in the number
+        pdu_number = ''.join(
+            '%s%s' % (y, x) for x, y in zip(number[::2], number[1::2]))
+        self.chat('+CMGF=', 0)  # Set pdu mode
+        self.modem.write('AT+CMGS=%d\r' % 17)
+        self.modem.read(4)       # Wait for the '>'
+        self.modem.write('0001000A81%s000005E8329BFD06' % pdu_number)
+        self.modem.write('\x1a')
+        self.modem.read_answer()
+
+    def test_sms(self):
+        """Test that we can send and receive SMS"""
+        number = self.conf.get('CALLABLE_NUMBER', None)
+        if not number:
+            self.info("can't find a callable number in conf file")
+            self.info("skip sms tests")
+            return True
+        # Try direct sending of SMS in text mode
+        for i in range(3):
+            try:
+                self._try_send_sms(number)
+                self.operator_confirm("received SMS with text : 'hello'")
+                break
+            except SIMBusyError:
+                self.info('sim busy, try again in 10 seconds')
+                time.sleep(10)
+                continue
+        else:
+            self.fail("can't send PDU SMS")
+
+    def test_pdu_sms(self):
+        # XXX: this test may not work with number that don't have 10
+        # digits
+        number = self.conf.get('CALLABLE_NUMBER', None)
+        if not number:
+            self.info("can't find a callable number in conf file")
+            self.info("skip pdu sms tests")
+            return True
+        for i in range(5):
+            try:
+                self._try_send_sms(number)
+                self.operator_confirm("received SMS with text : 'hello'")
+                break
+            except SIMBusyError:
+                self.info('sim busy, try again in 10 seconds')
+                time.sleep(10)
+                continue
+        else:
+            self.fail("can't send PDU SMS")
 
 if __name__ == '__main__':
     GSMTest().execute()
