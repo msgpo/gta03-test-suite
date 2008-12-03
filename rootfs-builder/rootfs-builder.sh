@@ -12,14 +12,12 @@
 
 # defaults
 
-FEED_SECTION_LIST='all armv4t om-gta02'
+#PLATFORM=gta02
+PLATFORM=gta03
+FEED_SECTION_LIST="all armv4t"
 
 URL=http://downloads.openmoko.org/repository/testing
 OPKG_PROGRAM=/usr/local/openmoko/arm/bin/opkg-cl
-
-# local test
-#URL="file://${HOME}/oe/build/tmp/deploy/glibc/opk"
-#OPKG_PROGRAM=${HOME}/testing/opkg/build/src/opkg-cl
 
 # path passed to any scripts run by opkg
 RESTRICTED_PATH=/bin:/usr/bin
@@ -34,6 +32,8 @@ usage()
   echo usage: $(basename "$0") '<options>'
   echo '  --url=http://path          where to get the initial package list'
   echo '                             default:' ${URL}
+  echo '  --platform=                type of hardware platform'
+  echo '                             default:' ${PLATFORM}
   echo '  --init                     initialise empty root directory (from url)'
   echo '  --list                     show available packages'
   echo '  --list-installed           show packages already installed'
@@ -45,8 +45,8 @@ usage()
   echo '  --path=<path:path...>      restricted path for opkg'
   echo
   echo notes:
-  echo '  --init can be used to change the url to a different repository'
-  echo '         even after some pachages have been installed'
+  echo '  --init can be used to change the URL to a different repository'
+  echo '         even after some packages have been installed'
   echo
   echo examples:
   echo '  '$(basename "$0") --rootfs=/path/to/myroot --init --url=${URL}
@@ -55,6 +55,13 @@ usage()
   echo '  '$(basename "$0") --rootfs=/path/to/myroot --devices
   echo '  '$(basename "$0") --rootfs=/path/to/myroot --list-installed
   exit 1
+}
+
+
+# display a message
+STATUS()
+{
+  echo '===>' $*
 }
 
 
@@ -84,6 +91,7 @@ SUDO()
   fi
 }
 
+
 # run opkg passing certail predefined options
 OPKG()
 {
@@ -96,6 +104,7 @@ OPKG()
     SUDO ${OPKG_PROGRAM} -offline "${rootfs}" --offline-path "${RESTRICTED_PATH}" "$@"
     rc="$?"
   fi
+  [ ${rc} -ne 0 ] && STATUS packager returned: ${rc}
   return "${rc}"
 }
 
@@ -117,7 +126,7 @@ makeroot()
   SUDO mkdir -p "${rootfs}/etc/opkg"
   SUDO mkdir -p "${rootfs}/usr/lib/opkg"
 
-  for item in ${FEED_SECTION_LIST}
+  for item in ${FEED_SECTION_LIST} "om-${PLATFORM}"
   do
     SUDO echo src/gz om-dev-${item} "${url}/${item}" > "${ConfDir}/${item}-feed.conf"
   done
@@ -133,7 +142,7 @@ arch any 6
 arch noarch 11
 arch arm 16
 arch armv4t 21
-arch om-gta02 26
+arch om-${PLATFORM} 26
 EOF
   fi
 }
@@ -171,7 +180,6 @@ FakerootDatabase=/tmp/rootfs.frdb
 
 makedevs_dir="$(readlink -f "$(dirname "$0")")/makedevs"
 command=null
-url="${URL}"
 archive=
 CacheDirectory=
 
@@ -179,7 +187,6 @@ while [ $# -ne 0 ]
 do
   arg="$1"
   case "${arg}" in
-
     --verbose)
       verbose=1
       ;;
@@ -194,7 +201,33 @@ do
       [ -d "${CacheDirectory}" ] || usage cache directory: ${CacheDirectory} does not exist
       ;;
     --url=*)
-      url="${arg#*=}"
+      URL="${arg#*=}"
+      case "${URL}" in
+        http://*|https://*)
+          ;;
+        file://*)
+          [ ! -d "${URL#file://}" ] && usage directory: ${URL} does not exist
+          ;;
+        /*)
+          [ ! -d "${URL}" ] && usage directory: ${URL} does not exist
+          URL="file://${URL}"
+          ;;
+        *)
+          usage invalid URL: ${URL}
+          ;;
+      esac
+      ;;
+    --platform=*)
+      case "${arg#*=}" in
+        [gG][tT][aA]03)
+          PLATFORM=gta03
+          ;;
+        [gG][tT][aA]02)
+          PLATFORM=gta02
+          ;;
+        *)
+          usage platform: ${arg#*=} is not valid
+      esac
       ;;
     --tar=*)
       archive="${arg#*=}"
@@ -245,8 +278,8 @@ do
 done
 
 FakerootDatabase="${rootfs}.frdb"
-echo rootfs = ${rootfs}
-echo url = ${url}
+STATUS rootfs = ${rootfs}
+STATUS URL = ${URL}
 
 [ X"${command}" != X"init" -a ! -d "${rootfs}" ] && usage root directory not inititilaised
 
@@ -255,7 +288,7 @@ echo url = ${url}
 case "${command}" in
 
   init)
-    makeroot "${rootfs}" "${url}" "${FakerootDatabase}"
+    makeroot "${rootfs}" "${URL}" "${FakerootDatabase}"
     OPKG update
     ;;
 
@@ -295,8 +328,8 @@ case "${command}" in
       fi
     fi
 
-    echo using program: ${MKDEV}
-    echo using device table: ${device_table}
+    STATUS using program: ${MKDEV}
+    STATUS using device table: ${device_table}
 
     SUDO rm -f "${rootfs}/dev/"*
     SUDO ${MKDEV} --root="${rootfs}" --devtable="${device_table}"
@@ -308,6 +341,7 @@ case "${command}" in
 
     for item in "$@"
     do
+      STATUS ${command} package: ${item}
       OPKG -force-reinstall -force-defaults "${command}" "${item}"
     done
     ;;
@@ -315,6 +349,7 @@ case "${command}" in
   remove|configure)
     for item in "$@"
     do
+      STATUS ${command} package: ${item}
       OPKG -force-depends "${command}" "${item}"
     done
     ;;
@@ -330,7 +365,7 @@ esac
 
 if [ -n "${archive}" ]
 then
-  echo creating archive of the root file system: ${archive}
+  STATUS creating archive of the root file system: ${archive}
 
   flag=
 
