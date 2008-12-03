@@ -44,8 +44,8 @@ RBLD()
 
 # main program
 
-RootfsDirectory="$1"; shift
-CacheDirectory="$1"; shift
+RootfsDirectory="$1"
+CacheDirectory="$2"
 
 [ -z "${RootfsDirectory}" ] && usage missing rootfs path
 RootfsDirectory="$(readlink -m "${RootfsDirectory}")"
