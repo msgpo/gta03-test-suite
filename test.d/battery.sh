@@ -10,10 +10,11 @@
 # path to the battery parameters
 
 battery_sys=/dev/null
-for d in /sys/devices/platform/bq27000-battery.0/power_supply/bat /sys/class/power_supply/bat
+for d in /sys/devices/platform/bq27000-battery.0/power_supply/bat /sys/class/power_supply/battery
 do
   [ -e "${d}" ] && battery_sys="${d}" && break
 done
+[ ! -d "${battery_sys}" ] &&  ABORT no battery found
 
 # voltage is in uV
 battery_voltage=$(GET_VALUE "${battery_sys}/voltage_now")

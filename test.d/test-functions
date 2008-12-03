@@ -44,7 +44,7 @@ GET_VALUE()
   then
     cat "${parameter}" 2> /dev/null
   else
-    FAIL invalid parameter: ${parameter}
+    ABORT invalid parameter: ${parameter}
     echo 0
   fi
 }
@@ -59,7 +59,7 @@ SET_VALUE()
   then
     echo "${value}" > "${parameter}" 2> /dev/null
   else
-    FAIL invalid parameter: ${parameter}
+    ABORT invalid parameter: ${parameter}
   fi
 }
 
@@ -92,6 +92,13 @@ FAIL()
   TEST_RC=1
   TEST_FAIL_COUNT=$((${TEST_FAIL_COUNT} + 1))
   TEST_TOTAL_COUNT=$((${TEST_TOTAL_COUNT} + 1))
+}
+
+# if the test is failing so badly just give up
+ABORT()
+{
+  FAIL "$@"
+  exit 1
 }
 
 # a test pass
