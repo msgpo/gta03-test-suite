@@ -16,6 +16,7 @@ ConfigurationFile=$(readlink -m .installerrc)
 
 
 # configuration
+# =============
 
 # basic settings
 StageDirectory="${BuildDirectory}/rootfs"
@@ -23,6 +24,9 @@ StageDirectory="${BuildDirectory}/rootfs"
 MountPoint="${BuildDirectory}/mnt"
 
 RootFSArchive="${BuildDirectory}/rootfs.tar.bz2"
+
+PLATFORM=gta03
+URL=http://downloads.openmoko.org/repository/testing
 
 # set to YES to completely remove the build directory
 # override by command line option --clean / --no-clean
@@ -42,6 +46,10 @@ KeepAuthorisation="NO"
 
 # the cache directory
 CacheDirectory="${BuildDirectory}/cache"
+
+# install by default
+# override by command line option --install / --no-install
+InstallToSDCard="YES"
 
 # SD Card info
 SDCardDevice="sdb"
@@ -71,8 +79,11 @@ ImageType="gta03"
 KernelDirectory="$(readlink -m ../kernel)"
 KernelImage="uImage-GTA03.bin"
 
+# End of configuration
+# ==================
 
 # just in case we want to override any of the above
+# read in the configuration file
 [ -e "${ConfigurationFile}" ] && . "${ConfigurationFile}"
 
 
@@ -87,6 +98,7 @@ usage()
   echo '  --format     Erase and recreate SD Card filesystems'
   echo '  --prompt     Ask yes/no before sudo'
   echo '  --keep       Keep sudo authorisation'
+  echo '  --install    Install to SD Card'
   echo '  --no-XXX     Turn off an option'
   exit 1
 }
@@ -175,15 +187,22 @@ FakeRoot()
 }
 
 
+RBLD_basic()
+{
+  ${RootFSBuilder} --url="${URL}" --platform="${PLATFORM}" --rootfs="${StageDirectory}" --path="${RestrictedPath}" "$@"
+}
+
+
 RBLD()
 {
   local rc=0
-  if [ -n "${CacheDirectory}" ]
+  local cache
+  if [ -n "${CacheDirectory}" -a -d "${CacheDirectory}" ]
   then
-    ${RootFSBuilder} --rootfs="${StageDirectory}" --path="${RestrictedPath}" --cache="${CacheDirectory}" "$@"
+    RBLD_basic --cache="${CacheDirectory}" "$@"
     rc="$?"
   else
-    ${RootFSBuilder} --rootfs="${StageDirectory}" --path="${RestrictedPath}" "$@"
+    RBLD_basic "$@"
     rc="$?"
   fi
 
@@ -205,7 +224,10 @@ BuildRootFileSystem()
   RBLD --remove exquisite-theme-freerunner
 
   # install some additional apps
-  RBLD --install python-lang
+  #RBLD --install python-lang
+
+  # add the test suite
+  RBLD --install om-test-suite
 }
 
 
@@ -343,6 +365,15 @@ InstallRootFileSystem()
       SUDO tar xf "${RootFSArchive}" -C "${MountPoint}/"
       rc="$?"
 
+      echo
+      echo Boot directory:
+      ls -l "${MountPoint}/boot"
+
+      echo
+      echo Console:
+      grep '^S:' "${MountPoint}/etc/inittab"
+
+      echo
       UnmountSDCard || true
 
       exit "$?"
@@ -356,48 +387,55 @@ InstallRootFileSystem()
   fi
 }
 
+YesOrNo()
+{
+  local _tag _var
+  _tag="$1"; shift
+  _var="$1"; shift
+
+  case "${_tag}" in
+    -no-*|--no-*)
+      eval "${_var}"=\"NO\"
+      ;;
+    *)
+      eval "${_var}"=\"YES\"
+      ;;
+  esac
+}
+
 
 # main program
 # ============
 
 while [ $# -gt 0 ]
 do
-  case "$1" in
-    --clean)
-      clean=YES
+  arg="$1"; shift
+  case "${arg}" in
+    --clean|--no-clean)
+      YesOrNo "${arg}" clean
       ;;
-    --no-clean)
-      clean=NO
+    --format|--no-format)
+      YesOrNo "${arg}" format
       ;;
-    --format)
-      format=YES
+    --prompt|--no-prompt)
+      YesOrNo "${arg}" SudoPrompt
       ;;
-    --no-format)
-      format=NO
+    --keep|--no-keep)
+      YesOrNo "${arg}" KeepAuthorisation
       ;;
-    --prompt)
-      SudoPrompt=YES
-      ;;
-    --no-prompt)
-      SudoPrompt=NO
-      ;;
-    --keep)
-      KeepAuthorisation=YES
-      ;;
-    --no-keep)
-      KeepAuthorisation=NO
+    --install|--no-install)
+      YesOrNo "${arg}" InstallToSDCard
       ;;
     -h|--help)
       usage
       ;;
     -*)
-      usage unrecognised option $1
+      usage unrecognised option ${arg}
       ;;
     --|*)
       break
       ;;
   esac
-  shift
 done
 
 UnmountSDCard
@@ -415,21 +453,24 @@ mkdir -p "${MountPoint}" || usage failed to create ${MountPoint}
 
 # build an image in the stage directory
 BuildRootFileSystem
-GetTheKernel
-ApplyFixes
+#GetTheKernel
+#ApplyFixes
 
 # create an archive of the stage directory
 rm -f "${RootFSArchive}"
 RBLD --tar="${RootFSArchive}"
 
 # install to SD Card
-if [ X"${format}" = X"YES" ]
+if [ X"${InstallToSDCard}" = X"YES" ]
 then
-  InstallQi format
-else
-  InstallQi no-format
+  if [ X"${format}" = X"YES" ]
+  then
+    InstallQi format
+  else
+    InstallQi no-format
+  fi
+  InstallRootFileSystem
 fi
-InstallRootFileSystem
 
 # finished
 UnmountSDCard
