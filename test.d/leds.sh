@@ -1,8 +1,13 @@
 #!/bin/sh
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
-# MENU: led
+# NAME: leds
+# BEFORE: final
+# AFTER: shell_functions interactive
+# SECTION: led interactive
+# MENU: LEDs
 # DESCRIPTION: Confirm the operation of the LEDs
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 # get standard test functions
 . /etc/test.d/test-functions

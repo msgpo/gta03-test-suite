@@ -1,8 +1,13 @@
 #!/bin/sh
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
-# MENU_IGNORE: YES
-# DESCRIPTION: Functions to simplfy test script
+# NAME: shell_functions
+# BEFORE: final
+# AFTER:
+# SECTION: init norun nomenu
+# MENU: none
+# DESCRIPTION: Functions to simplify test script
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 # create a file handle for our output
 exec 6>&1
@@ -44,7 +49,7 @@ GET_VALUE()
   then
     cat "${parameter}" 2> /dev/null
   else
-    ABORT invalid parameter: ${parameter}
+    FAIL invalid parameter: ${parameter}
     echo 0
   fi
 }

@@ -1,8 +1,13 @@
 #!/bin/sh
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
-# MENU: regulator
-# DESCRIPTION: Verfy some regulator status
+# NAME: regulator
+# BEFORE: final interactive
+# AFTER: shell_functions
+# SECTION: board pmu
+# MENU: PMU Stat
+# DESCRIPTION: Verify some regulator status
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 # get standard test functions
 . /etc/test.d/test-functions

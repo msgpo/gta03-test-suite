@@ -1,8 +1,13 @@
 #!/bin/sh
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
+# NAME: battery
+# BEFORE: final interactive
+# AFTER: shell_functions
+# SECTION: board battery
 # MENU: battery
-# DESCRIPTION: Verfy some battery data
+# DESCRIPTION: Verify some battery data
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 # get standard test functions
 . /etc/test.d/test-functions

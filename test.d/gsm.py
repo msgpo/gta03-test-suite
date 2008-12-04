@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
-# MENU: GSM module
+# NAME: gsm
+# BEFORE: final interactive
+# AFTER: python_functions
+# SECTION: board gsm
+# MENU: none
 # DESCRIPTION: test that we can use the GSM module
+# AUTHOR: Guillaume Chereau <charlie@openmoko.org>
 
 import time
 import serial

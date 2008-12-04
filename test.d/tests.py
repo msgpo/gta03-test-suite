@@ -1,7 +1,12 @@
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
-# MENU_IGNORE: YES
+# NAME: python_functions
+# BEFORE: final
+# AFTER: shell_functions
+# SECTION: init norun nomenu
+# MENU: none
 # DESCRIPTION: module to simplfy test script in python
+# AUTHOR: Guillaume Chereau <charlie@openmoko.org>
 
 """tests module
 
