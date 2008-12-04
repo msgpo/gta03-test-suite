@@ -107,7 +107,6 @@ usage()
 INFO()
 {
   echo INFO: $*
-  return 1
 }
 
 
@@ -429,10 +428,13 @@ do
     -h|--help)
       usage
       ;;
+    --)
+      break
+      ;;
     -*)
       usage unrecognised option ${arg}
       ;;
-    --|*)
+    *)
       break
       ;;
   esac
