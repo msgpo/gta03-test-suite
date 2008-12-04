@@ -66,12 +66,18 @@ int debug = 0;
 #define PROVIDE_LEN	(sizeof(PROVIDE_STR) - 1)
 #define PROVIDES_STR	"# PROVIDES:"
 #define PROVIDES_LEN	(sizeof(PROVIDES_STR) - 1)
+#define AFTER_STR	"# AFTER:"
+#define AFTER_LEN	(sizeof(AFTER_STR) - 1)
+#define NAME_STR	"# NAME:"
+#define NAME_LEN	(sizeof(NAME_STR) - 1)
 #define BEFORE_STR	"# BEFORE:"
 #define BEFORE_LEN	(sizeof(BEFORE_STR) - 1)
 #define KEYWORD_STR	"# KEYWORD:"
 #define KEYWORD_LEN	(sizeof(KEYWORD_STR) - 1)
 #define KEYWORDS_STR	"# KEYWORDS:"
 #define KEYWORDS_LEN	(sizeof(KEYWORDS_STR) - 1)
+#define SECTION_STR	"# SECTION:"
+#define SECTION_LEN	(sizeof(SECTION_STR) - 1)
 
 int exit_code;
 int file_count;
@@ -504,16 +510,22 @@ crunch_file(filename)
 			require_flag = REQUIRE_LEN;
 		else if (strncmp(REQUIRES_STR, buf, REQUIRES_LEN) == 0)
 			require_flag = REQUIRES_LEN;
+		else if (strncmp(AFTER_STR, buf, AFTER_LEN) == 0)
+			require_flag = AFTER_LEN;
 		else if (strncmp(PROVIDE_STR, buf, PROVIDE_LEN) == 0)
 			provide_flag = PROVIDE_LEN;
 		else if (strncmp(PROVIDES_STR, buf, PROVIDES_LEN) == 0)
 			provide_flag = PROVIDES_LEN;
+		else if (strncmp(NAME_STR, buf, NAME_LEN) == 0)
+			provide_flag = NAME_LEN;
 		else if (strncmp(BEFORE_STR, buf, BEFORE_LEN) == 0)
 			before_flag = BEFORE_LEN;
 		else if (strncmp(KEYWORD_STR, buf, KEYWORD_LEN) == 0)
 			keywords_flag = KEYWORD_LEN;
 		else if (strncmp(KEYWORDS_STR, buf, KEYWORDS_LEN) == 0)
 			keywords_flag = KEYWORDS_LEN;
+		else if (strncmp(SECTION_STR, buf, SECTION_LEN) == 0)
+			keywords_flag = SECTION_LEN;
 		else {
 			if (state == PARSING)
 				state = PARSING_DONE;

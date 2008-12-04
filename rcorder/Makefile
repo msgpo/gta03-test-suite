@@ -18,3 +18,13 @@ ${PROGRAM}: ${OBJECTS}
 
 clean:
 	${RM} "${PROGRAM}" *.core *~ *.o
+
+depend:
+	makedepend -Y ${CFLAGS} ${SOURCES}
+
+# DO NOT DELETE
+
+ealloc.o: ealloc.h
+hash.o: sprite.h hash.h ealloc.h
+rcorder.o: ./libutil.h ealloc.h sprite.h hash.h
+fparseln.o: ./libutil.h
