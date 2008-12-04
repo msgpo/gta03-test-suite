@@ -1,21 +1,20 @@
-#       $NetBSD: Makefile,v 1.1 1999/11/23 05:28:20 mrg Exp $
-# $FreeBSD: src/sbin/rcorder/Makefile,v 1.5.8.1.8.1 2008/10/02 02:57:24 kensmith Exp $
+# Makefile
 
-PROG=   rcorder
-SRCS=   ealloc.c hash.c rcorder.c
-MAN=	rcorder.8
+PROGRAM = rcorder
+SOURCES = ealloc.c hash.c rcorder.c fparseln.c fgetln.c
+OBJECTS = $(addsuffix .o,$(basename ${SOURCES}))
+MAN = rcorder.8 fparseln.3
 
-LDADD=	-lutil
-DPADD=	${LIBUTIL}
+RM = rm -f
 
-WARNS?=	6
-# XXX hack for make's hash.[ch]
-CFLAGS+= -DORDER -I.
 
-SRCS+=	util.h
-CLEANFILES+=	util.h
+CFLAGS+= -DORDER -I. -Wall -Werror
 
-util.h:
-	ln -sf ${.CURDIR}/../../lib/libutil/libutil.h ${.TARGET}
+all: ${PROGRAM}
 
-.include <bsd.prog.mk>
+${PROGRAM}: ${OBJECTS}
+	${CC} -o $@ ${LDFLAGS} ${OBJECTS}
+
+
+clean:
+	${RM} "${PROGRAM}" *.core *~ *.o

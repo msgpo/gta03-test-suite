@@ -46,7 +46,7 @@ static char rcsid[] = "$NetBSD: hash.c,v 1.1.1.1 1999/11/19 04:30:56 mrg Exp $";
 #if 0
 static char sccsid[] = "@(#)hash.c	8.1 (Berkeley) 6/6/93";
 #else
-__RCSID("$NetBSD: hash.c,v 1.1.1.1 1999/11/19 04:30:56 mrg Exp $");
+//__RCSID("$NetBSD: hash.c,v 1.1.1.1 1999/11/19 04:30:56 mrg Exp $");
 #endif
 #endif /* not lint */
 #endif

@@ -36,7 +36,7 @@
  */
 
 #include <sys/types.h>
-__FBSDID("$FreeBSD: src/sbin/rcorder/rcorder.c,v 1.1.1.2.14.2.6.1 2008/10/02 02:57:24 kensmith Exp $");
+//__FBSDID("$FreeBSD: src/sbin/rcorder/rcorder.c,v 1.1.1.2.14.2.6.1 2008/10/02 02:57:24 kensmith Exp $");
 
 #include <sys/stat.h>
 
@@ -45,7 +45,7 @@ __FBSDID("$FreeBSD: src/sbin/rcorder/rcorder.c,v 1.1.1.2.14.2.6.1 2008/10/02 02:
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <util.h>
+#include <libutil.h>
 
 #include "ealloc.h"
 #include "sprite.h"

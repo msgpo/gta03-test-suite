@@ -100,9 +100,10 @@ int	realhostname_sa(char *host, size_t hsize, struct sockaddr *addr,
 int	kld_isloaded(const char *name);
 int	kld_load(const char *name);
 
-#ifdef _STDIO_H_	/* avoid adding new includes */
+//#ifdef _STDIO_H_	/* avoid adding new includes */
 char   *fparseln(FILE *, size_t *, size_t *, const char[3], int);
-#endif
+char   *fgetln(FILE *, size_t *); // missing from glibc
+//#endif
 
 #ifdef _PWD_H_
 int	pw_copy(int _ffd, int _tfd, const struct passwd *_pw, struct passwd *_old_pw);
