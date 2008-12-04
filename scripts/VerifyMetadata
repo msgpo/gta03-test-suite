@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# COPYRIGHT: Openmoko Inc. 2008
+# LICENSE: GPL Version 2 or later
+# DESCRIPTION: verify the metadata for a test script
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
+
+
+metaData = {
+  "COPYRIGHT" => "required",
+  "LICENSE" => "required",
+  "NAME" => "required",
+  "AFTER" => "optional",
+  "BEFORE" => "optional",
+  "SECTION" => "required",
+  "MENU" => "required",
+  "DESCRIPTION" => "required",
+  "AUTHOR" => "required",
+}
+
+
+ARGV.each do |fileName|
+#  print "processing: ", fileName, "\n"
+  lineCounter = 0
+  duplicates = {}
+  File.open(fileName, "r") do |file|
+    file.readlines.each do |l|
+      lineCounter += 1
+      l.chomp!()
+      if l =~/^#[[:space:]]([[:upper:]]+):[[:space:]]*([^[:space:]].*[^[:space:]])?([[:space:]]*)$/ then
+        tag, value, trailing = $1, $2, $3
+     
+        # check for duplicates
+        if duplicates[tag]
+          print fileName, ":", lineCounter, " Error: duplicate entry for: '",
+          tag, "', previous definition is on line: ", duplicates[tag], "\n"
+        end
+        duplicates[tag] = lineCounter
+
+        # check for trailing whitespace
+        unless 0 == trailing.length()
+          print fileName, ":", lineCounter, " Error: '", tag, "' has trailing whitespace\n"
+        end
+
+        # check for unknown items
+        m = metaData[tag]
+        unless m
+          print fileName, ":", lineCounter, " Error: invalid item: '", tag, "'\n"
+        else
+          if "required" == m and (not value or 0 == value.length())
+            print fileName, ":", lineCounter, " Error: missing value for: '", tag, "'\n"
+          end
+        end
+      end
+    end
+  end
+
+  # check for missing items
+  metaData.each() do |tag, value|
+    if not duplicates[tag] and "required" == value
+      print fileName, ": Error: missing entry for: '", tag, "'\n"
+    end
+  end
+
+end
