@@ -4,7 +4,6 @@
 # DESCRIPTION: verify the metadata for a test script
 # AUTHOR: Christopher Hall <hsw@openmoko.com>
 
-
 metaData = {
   "COPYRIGHT" => "required",
   "LICENSE" => "required",
@@ -17,6 +16,7 @@ metaData = {
   "AUTHOR" => "required",
 }
 
+result = true
 
 ARGV.each do |fileName|
 #  print "processing: ", fileName, "\n"
@@ -33,21 +33,25 @@ ARGV.each do |fileName|
         if duplicates[tag]
           print fileName, ":", lineCounter, " Error: duplicate entry for: '",
           tag, "', previous definition is on line: ", duplicates[tag], "\n"
+          result = false
         end
         duplicates[tag] = lineCounter
 
         # check for trailing whitespace
         unless 0 == trailing.length()
           print fileName, ":", lineCounter, " Error: '", tag, "' has trailing whitespace\n"
+          result = false
         end
 
         # check for unknown items
         m = metaData[tag]
         unless m
           print fileName, ":", lineCounter, " Error: invalid item: '", tag, "'\n"
+          result = false
         else
           if "required" == m and (not value or 0 == value.length())
             print fileName, ":", lineCounter, " Error: missing value for: '", tag, "'\n"
+            result = false
           end
         end
       end
@@ -58,7 +62,10 @@ ARGV.each do |fileName|
   metaData.each() do |tag, value|
     if not duplicates[tag] and "required" == value
       print fileName, ": Error: missing entry for: '", tag, "'\n"
+      result = false
     end
   end
 
 end
+
+exit(if result then 0 else 1 end)
