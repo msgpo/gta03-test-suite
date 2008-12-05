@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # COPYRIGHT: Openmoko Inc. 2008
 # LICENSE: GPL Version 2 or later
 # NAME: python_functions
