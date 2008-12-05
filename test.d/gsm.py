@@ -16,6 +16,21 @@ import re
 import tests
 
 
+def try_loop(func, nb=5, sleep=None, msg="do the command"):
+    """Try to run a function a number of time until it succeed"""
+    for i in range(nb):
+        try:
+            return func()
+        except Exception, ex:
+            tests.info("fail to %s : %s" % msg, ex)
+            if sleep:
+                tests.info("sleep %d seconds" % sleep)
+                time.sleep(sleep)
+            tests.info("retrying")
+    else:
+        raise Exception("give up to %s" % msg)
+
+
 class ATError(Exception):
     """Base class for AT related exceptions"""
 
@@ -27,6 +42,12 @@ class SIMBusyError(ATError):
 
     def __init__(self):
         super(SIMBusyError, self).__init__('SIM busy')
+
+
+class SIMPINRequiredError(ATError):
+
+    def __init__(self):
+        super(SIMPINRequiredError, self).__init__('PIN required')
 
 
 class TimeOut(ATError):
@@ -47,7 +68,7 @@ class Modem(object):
         return the line striped (with /r/n removed at the end), if we
         just receive '\r\n' then this return an empty line.
         """
-        ret =''
+        ret = ''
         while True:
             c = self.dev.read(1)
             if not c:
@@ -117,6 +138,8 @@ class Modem(object):
             ret.append(line)
 
             if line.startswith('+CME ERROR'):
+                if 'SIM PIN required' in line:
+                    raise SIMPINRequiredError()
                 raise ATError(line)
             if line.startswith('+CMS ERROR'):
                 if 'SIM busy' in line:
@@ -175,9 +198,10 @@ class Calypso(Modem):
         time.sleep(4)
         msg = self.read_line()
         tests.info("got ready messages : %s", repr(msg))
-        tests.info("send empty command to calypso")
-        self.dev.write('\r')
-        self.dev.read()
+        time.sleep(2)
+        # tests.info("send empty command to calypso")
+        # self.dev.write('\r')
+        # self.dev.read()
 
 
 class GSMTest(tests.Test):
@@ -208,10 +232,10 @@ class GSMTest(tests.Test):
         self.init()
         self.info("== Testing basics ==")
         self.test_basics()
-        self.info("== Testing contacts ==")
-        self.test_contacts()
         self.info("== Testing network ==")
         self.test_network()
+        self.info("== Testing contacts ==")
+        self.test_contacts()
         self.info("== Testing call ==")
         self.test_call()
         self.info("== Testing SMS ==")
@@ -246,9 +270,30 @@ class GSMTest(tests.Test):
 
     def test_network(self):
         """Try to register on the network"""
-        self.chat('+CFUN=', 1) # Turn on antenna
+        # With calypso we can send the sim only after +CFUN command
+        # fails. Is is also the case with MC75i ?
+        try:
+            self.chat('+CFUN=', 1, error='raise') # Turn on antenna
+        except SIMPINRequiredError:
+            self._unlock_sim()
+            self.chat('+CFUN=', 1, error='raise') # Turn on antenna
+
         self.chat('+COPS=', 0) # Register on a network
         self.chat('+CREG?')  # check that we are registered
+
+    def _unlock_sim(self):
+        pin = self.conf.get('SIM_PIN', None)
+        pin_status = self.chat('+CPIN?')
+        if pin_status == 'READY':
+            return
+        elif pin_status == 'SIM PIN':
+            if not pin:
+                self.fail("PIN requiered and no SIM_PIN conf")
+                raise Exception("Can't unlock the SIM")
+            self.chat('+CPIN=', pin)
+        else:
+            raise Exception(
+                "Unrocognized return value :'%s'" % pin_status)
 
     def test_call(self):
         """Make phone calls"""
@@ -268,16 +313,9 @@ class GSMTest(tests.Test):
         self.chat('+CPIN?')
         self.chat('+CPBS=', 'SM')
 
-        # with calypso, +CPBR=? sometime fails !
-        for i in range(5):
-            try:
-                ranges = self.chat('+CPBR=?', error='raise')
-                break
-            except:
-                self.info("trying again in one second")
-                time.sleep(10)
-        else:
-            return self.fail("Can't get contact range")
+        def get_contact_range():
+            return self.chat('+CPBR=?', error='raise')
+        ranges = try_loop(get_contact_range, 5, sleep=5, msg="get contact")
 
         # parse the returned value
         r = re.compile(r'\((\d+)-(\d+)\),\d+,\d+')
