@@ -6,19 +6,30 @@ OBJECTS = $(addsuffix .o,$(basename ${SOURCES}))
 MAN = rcorder.8 fparseln.3
 
 RM = rm -f
+INSTALL = install
 
 
 CFLAGS+= -DORDER -I. -Wall -Werror
 
+.PHONY: all
 all: ${PROGRAM}
 
 ${PROGRAM}: ${OBJECTS}
 	${CC} -o $@ ${LDFLAGS} ${OBJECTS}
 
 
+.PHONY:install
+install: all
+	${INSTALL} -d "${DESTDIR}/sbin"
+	${INSTALL} -m 0755 "${PROGRAM}" ${DESTDIR}/sbin/
+
+
+.PHONY:clean
 clean:
 	${RM} "${PROGRAM}" *.core *~ *.o
 
+
+.PHONY: depend
 depend:
 	makedepend -Y ${CFLAGS} ${SOURCES}
 
