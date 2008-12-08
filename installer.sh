@@ -9,7 +9,7 @@
 # allow for building QI and the kernel.  As there are already exiting
 # scripts in QI and kernel directories this script just uses them.
 # The intention is to have a single script that can format the SD
-# card, install QI, kernel and root file system and browse the result.
+# Card, install QI, kernel and root file system and browse the result.
 
 BuildDirectory=$(readlink -m tmp)
 ConfigurationFile=$(readlink -m .installerrc)
@@ -28,30 +28,31 @@ RootFSArchive="${BuildDirectory}/rootfs.tar.bz2"
 PLATFORM=gta03
 URL=http://downloads.openmoko.org/repository/testing
 
-# set to YES to completely remove the build directory
+# set to YES to completely remove the build directory before other
+# actions
 # override by command line option --clean / --no-clean
 clean="NO"
 
-# format the SD Card if the is set to YES
+# format the SD Card if this is set to YES
 # override by command line option --format / --no-format
 format="NO"
 
-# enable prompting of sudo commands
+# enable prompting for sudo commands
 # override by command line option --prompt / --no-prompt
 SudoPrompt="YES"
 
-# keep autorisation for sudo
+# keep authorisation for sudo
 # override by command line option --keep / --no-keep
 KeepAuthorisation="NO"
 
-# the cache directory
+# location of the cache directory
 CacheDirectory="${BuildDirectory}/cache"
 
 # install by default
 # override by command line option --install / --no-install
 InstallToSDCard="YES"
 
-# SD Card info
+# SD Card info (assumed to be in /dev)
 SDCardDevice="sdb"
 SDCardPartition="2"
 
@@ -62,7 +63,7 @@ QiImage="image/qi-s3c6410-"
 
 # where to obtain kernel
 KernelDirectory="$(readlink -m ../kernel)"
-KernelImage="uImage-GTA03.bin"
+KernelImage="uImage-$(echo ${PLATFORM} | tr a-z A-Z).bin"
 
 # how to run the rootfs builder
 RootFSBuilderDirectory="$(readlink -m rootfs-builder)"
@@ -71,16 +72,17 @@ RootFSBuilder="${RootFSBuilderDirectory}/rootfs-builder.sh"
 # path for pre/post package scripts
 RestrictedPath="${RootFSBuilderDirectory}/restricted:/bin:/usr/bin"
 
-# the database for fakeroot must be the same as used by rootfs-builder.sh
+# the database for fakeroot must be the same as the one used by
+# rootfs-builder.sh
 FakerootDatabase="${StageDirectory}.frdb"
 
 # type of image
-ImageType="gta03"
+ReplaceKernel="NO"
 KernelDirectory="$(readlink -m ../kernel)"
 KernelImage="uImage-GTA03.bin"
 
 # End of configuration
-# ==================
+# ====================
 
 # just in case we want to override any of the above
 # read in the configuration file
@@ -98,8 +100,10 @@ usage()
   echo '  --format     Erase and recreate SD Card filesystems'
   echo '  --prompt     Ask yes/no before sudo'
   echo '  --keep       Keep sudo authorisation'
+  echo '  --kernel     Replace the packaged kernel with a local one'
   echo '  --install    Install to SD Card'
   echo '  --no-XXX     Turn off an option'
+  echo 'note: options override configuration file ('${ConfigurationFile}')'
   exit 1
 }
 
@@ -122,7 +126,7 @@ AskYN()
   local yorn junk rc
   if [ X"${SudoPrompt}" != X"YES" ]
   then
-    # alway assume yes if not prompting
+    # always assume yes if not prompting
     return 0
   fi
   while read -p "$* [y/n]? " yorn junk
@@ -152,8 +156,8 @@ SudoReset()
 }
 
 
-# diplay a command an ask for permission to sudo it
-# if already under sudo the just run the command
+# display a command and ask for permission to sudo it
+# if already under sudo then just run the command
 SUDO()
 {
   if [ -z "${SUDO_UID}" -o -z "${SUDO_GID}" ]
@@ -262,9 +266,9 @@ MountSDCard()
 GetTheKernel()
 {
   (
-    cd "${KernelDirectory}" || ERROR cannt cd to: ${KernelDirectory}
+    cd "${KernelDirectory}" || ERROR cannot cd to: ${KernelDirectory}
 
-    cp -p "${KernelImage}" "${StageDirectory}/boot/" || ERROR faile to copy the kernel
+    cp -p "${KernelImage}" "${StageDirectory}/boot/" || ERROR failed to copy the kernel
 
     env INSTALL_MOD_PATH="${StageDirectory}" make ARCH=arm modules_install || ERROR failed to install modules
     )
@@ -279,7 +283,7 @@ GetTheKernel()
 # temporary hacks until om-gta03 established
 ApplyFixes()
 {
-  case "${ImageType}" in
+  case "${PLATFORM}" in
     [gG][tT][aA]02)
       ;;
 
@@ -455,7 +459,12 @@ mkdir -p "${MountPoint}" || usage failed to create ${MountPoint}
 
 # build an image in the stage directory
 BuildRootFileSystem
-#GetTheKernel
+if [ X"${ReplaceKernel}" = X"YES" ]
+then
+  GetTheKernel
+fi
+
+# maybe this is obsolete
 #ApplyFixes
 
 # create an archive of the stage directory
