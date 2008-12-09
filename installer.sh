@@ -81,6 +81,10 @@ ReplaceKernel="NO"
 KernelDirectory="$(readlink -m ../kernel)"
 KernelImage="uImage-GTA03.bin"
 
+# provide a hook for the config file to adjust things after command line
+# arguments have been processed; set to the name of a shell function
+PostHook=
+
 # End of configuration
 # ====================
 
@@ -101,6 +105,7 @@ usage()
   echo '  --prompt     Ask yes/no before sudo'
   echo '  --keep       Keep sudo authorisation'
   echo '  --kernel     Replace the packaged kernel with a local one'
+  echo '  --gtaXX      Set the platform'
   echo '  --install    Install to SD Card'
   echo '  --no-XXX     Turn off an option'
   echo 'note: options override configuration file ('${ConfigurationFile}')'
@@ -429,6 +434,9 @@ do
     --install|--no-install)
       YesOrNo "${arg}" InstallToSDCard
       ;;
+    --gta[0-9][0-9])
+      PLATFORM="${arg#--}"
+      ;;
     -h|--help)
       usage
       ;;
@@ -443,6 +451,9 @@ do
       ;;
   esac
 done
+
+#run the hook after command line arguments have been processed
+[ -n "${PostHook}" -a -n "$(typeset -F "${PostHook}")" ] && ${PostHook}
 
 UnmountSDCard
 
