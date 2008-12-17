@@ -5,7 +5,7 @@
 # BEFORE: final interactive
 # AFTER: shell_functions
 # SECTION: board pmu
-# MENU: PMU Stat
+# MENU: PMU State
 # DESCRIPTION: Verify some regulator status
 # AUTHOR: Christopher Hall <hsw@openmoko.com>
 
