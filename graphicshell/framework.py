@@ -16,15 +16,17 @@ class Colour:
 
     blue = (0, 0, 255)
     green = (0, 255, 0)
+    paleGreen = (160, 255, 160)
     red = (255, 0, 0)
     yellow = (255, 255, 0)
     orange = (255, 165, 0)
     black = (0, 0, 0)
     grey100 = (100, 100, 100)
     grey150 = (150, 150, 150)
+    grey200 = (200, 200, 200)
     white = (255, 255, 255)
     pink = (255, 200, 200)
-    LightSkyBlue = (135, 206, 250)
+    lightSkyBlue = (135, 206, 250)
 
 
 class Theme:
@@ -54,7 +56,7 @@ class Theme:
 
     class Dialog:
         border = Colour.black
-        background = Colour.LightSkyBlue
+        background = Colour.lightSkyBlue
 
         class Text:
             background = Colour.white
@@ -198,6 +200,7 @@ class Text(Frame):
         self.font = pygame.font.Font(Theme.Text.font, self.fontHeight)
         self.lineSize = self.font.get_linesize()
         self.text = text
+        self.tags = []
         self.display()
 
     def display(self):
@@ -208,14 +211,20 @@ class Text(Frame):
         for l in reversed(textLines):
             count += 1
             y -= self.lineSize
-            if "FAIL" != l[0:4]:
+            rendered = False
+            for len, substr, fg, bg in self.tags:
+                if substr == l[0:len]:
+                    renderedLine = self.font.render(l, 1, fg, bg)
+                    rendered = True
+            if not rendered:
                 renderedLine = self.font.render(l, 1, self.foreground, self.background)
-            else:
-                renderedLine = self.font.render(l, 1, self.background, self.foreground)
             oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
             self.surface.blit(renderedLine, oneline)
             if y < self.lineSize:
                 break
+
+    def addTag(self, tag, foreground, background):
+        self.tags += [(len(tag), tag, foreground, background)]
 
     def append(self, text):
         self.text = ''.join([self.text, text])
