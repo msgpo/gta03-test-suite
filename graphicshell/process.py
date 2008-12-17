@@ -10,7 +10,8 @@ import select
 
 class Process:
 
-    MENU_RE = re.compile('^\s*#\s*MENU\s*:\s*(\w+)\s*$', re.IGNORECASE)
+    MENU_RE = re.compile('^\s*#\s*MENU\s*:\s*(\S.*\S)\s*.*$', re.IGNORECASE)
+    NONE_RE = re.compile('^\s*none\s*$', re.IGNORECASE)
     PROMPT_TIME = 100
     BUFFER_SIZE = 128
 
@@ -20,18 +21,21 @@ class Process:
         self.requestor = requestor
         self.callback = callback
         self.cmd = [self.name, "-auto"]
+        self.runnable = False
         f = open(fileName, "r")
         for line in f:
             m = Process.MENU_RE.match(line)
             if m:
-                self.menu = m.group(1)
-                break
+                menuName = m.group(1)
+                if not Process.NONE_RE.match(menuName):
+                  self.menu = menuName
+                  self.runnable = True
+                  break
         f.close()
 
 
     def __repr__(self):
         return "Process " + self.menu + "('" + self.name + "')"
-
 
     def run(self):
         (pid, fd) = os.forkpty()

@@ -6,6 +6,7 @@
 import sys
 from stat import *
 import os
+import re
 from framework import *
 from process import *
 import pygame
@@ -17,6 +18,7 @@ pygame.font.init()
 
 
 testDir = '/etc/test.d'
+backupFile = re.compile('^(.*~|.*\.(old|orig|bak))$', re.IGNORECASE)
 
 
 size = width, height = 480, 640
@@ -54,19 +56,19 @@ def runProgram(p):
     return False
 
 for f in os.listdir(testDir):
-
-    name = os.path.join(testDir, f)
-    m = os.stat(name)[ST_MODE]
-    if S_ISREG(m) and (m & S_IEXEC) != 0:
-        p = Process(name, request, status.append)
-        if p != None:
-            programList.append(p)
-            b = Button(p.menu, rect = (buttonX, buttonY, buttonW, buttonH), \
-                           parent = dirFrame, callback = runProgram, callbackarg = p)
-            buttonList.append(b)
-            buttonX += across
-            if buttonX + buttonW > width:
-                buttonX = offset
-                buttonY += down
+    if not backupFile.match(f):
+        name = os.path.join(testDir, f)
+        m = os.stat(name)[ST_MODE]
+        if S_ISREG(m) and (m & S_IEXEC) != 0:
+            p = Process(name, request, status.append)
+            if p != None and p.runnable:
+                programList.append(p)
+                b = Button(p.menu, rect = (buttonX, buttonY, buttonW, buttonH), \
+                               parent = dirFrame, callback = runProgram, callbackarg = p)
+                buttonList.append(b)
+                buttonX += across
+                if buttonX + buttonW > width:
+                    buttonX = offset
+                    buttonY += down
 
 eventHandler(theScreen, [dirFrame, status])
