@@ -27,6 +27,41 @@ class Colour:
     LightSkyBlue = (135, 206, 250)
 
 
+class Scheme:
+
+    class Event:
+        background = Colour.pink
+
+    class Frame:
+        background = Colour.grey150
+        foreground = Colour.black
+
+    class Text:
+        background = Colour.white
+        foreground = Colour.blue
+
+    class Button:
+        background = Colour.blue
+        foreground = Colour.green
+
+    class Dialog:
+        border = Colour.black
+        background = Colour.LightSkyBlue
+
+        class Text:
+            background = Colour.white
+            foreground = Colour.blue
+
+        class Yes:
+            foreground = Colour.green
+            background = Colour.blue
+
+        class No:
+            foreground = Colour.red
+            background = Colour.orange
+
+
+
 
 defaultTextSize = 24
 bigTextSize = 36
@@ -63,12 +98,12 @@ class Frame(object):
         if 'background' in kwargs:
             self.background = kwargs['background']
         else:
-            self.background = Colour.grey150
+            self.background = Scheme.Frame.background
 
         if 'foreground' in kwargs:
             self.foreground = kwargs['foreground']
         else:
-            self.foreground = Colour.black
+            self.foreground = Scheme.Frame.foreground
 
         self.surface.fill(self.background)
 
@@ -105,9 +140,9 @@ class Text(Frame):
     def __init__(self, text, **kwargs):
 
         if 'background' not in kwargs:
-            kwargs['background'] = Colour.white
+            kwargs['background'] = Scheme.Text.background
         if 'foreground' not in kwargs:
-            kwargs['foreground'] = Colour.blue
+            kwargs['foreground'] = Scheme.Text.foreground
 
         Frame.__init__(self, text, **kwargs)
 
@@ -147,9 +182,9 @@ class Text(Frame):
 class Button(Frame):
     def __init__(self, text, **kwargs):
         if 'background' not in kwargs:
-            kwargs['background'] = Colour.blue
+            kwargs['background'] = Scheme.Button.background
         if 'foreground' not in kwargs:
-            kwargs['foreground'] = Colour.green
+            kwargs['foreground'] = Scheme.Button.foreground
 
         Frame.__init__(self, text, **kwargs)
 
@@ -214,21 +249,22 @@ class Dialog(Frame):
         xb = (self.width - 2 * bWidth) / 3
         yb = self.height - yt - bHeight
 
-        Frame.__init__(self, "dialog", rect = (x, y, self.width, self.height))
+        Frame.__init__(self, "dialog", rect = (x, y, self.width, self.height), background = Scheme.Dialog.border)
         self.internal = Frame("bk", \
                                   rect = (self.border, self.border, \
                                               self.width - 2  * self.border, self.height - 2  * self.border), \
-                                  parent = self, colour = Colour.LightSkyBlue)
-        self.text = Text(message, rect = (xt, yt, tWidth, tHeight), parent = self.internal)
+                                  parent = self, background = Scheme.Dialog.background)
+        self.text = Text(message, rect = (xt, yt, tWidth, tHeight), parent = self.internal, \
+                              foreground = Scheme.Dialog.Text.foreground, background = Scheme.Dialog.Text.background)
 
         self.yes = Button("YES", rect = (xb, yb, bWidth, bHeight), \
                               parent = self.internal, \
                               callback = self.setState, callbackarg = True, \
-                              foreground = Colour.green, background = Colour.blue)
+                              foreground = Scheme.Dialog.Yes.foreground, background = Scheme.Dialog.Yes.background)
         self.no = Button("NO", rect = (self.width - xb - bWidth, yb, bWidth, bHeight), \
                              parent = self.internal, \
                              callback = self.setState, callbackarg = False, \
-                             foreground = Colour.red, background = Colour.orange)
+                             foreground = Scheme.Dialog.No.foreground, background = Scheme.Dialog.No.background)
 
     def setState(self, state):
         self.state = state
@@ -241,6 +277,7 @@ class Dialog(Frame):
 
 def eventHandler(screen, frameList):
 
+    screen.fill(Scheme.Event.background)
     for frame in frameList:
         frame.draw(screen)
     pygame.display.flip()
@@ -266,7 +303,8 @@ def eventHandler(screen, frameList):
                     run = False
                 frame.draw(screen)
             pygame.display.flip()
-    screen.fill(Colour.pink)
+    screen.fill(Scheme.Event.background)
+    pygame.display.flip()
 
 
 
@@ -294,7 +332,7 @@ if __name__ == '__main__':
 
     size = width, height = 480, 640
     theScreen = pygame.display.set_mode((width, height))
-    theScreen.fill(Colour.pink)
+    theScreen.fill(Colour.background)
 
     pygame.display.set_caption('Framework test')
 
