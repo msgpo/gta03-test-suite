@@ -27,9 +27,12 @@ class Colour:
     LightSkyBlue = (135, 206, 250)
 
 
-class Scheme:
+class Theme:
 
     class Event:
+        background = Colour.pink
+
+    class Screen:
         background = Colour.pink
 
     class Frame:
@@ -39,10 +42,15 @@ class Scheme:
     class Text:
         background = Colour.white
         foreground = Colour.blue
+        size = 24
+        font = None
 
     class Button:
         background = Colour.blue
         foreground = Colour.green
+
+        class Text:
+            size = 36
 
     class Dialog:
         border = Colour.black
@@ -51,6 +59,8 @@ class Scheme:
         class Text:
             background = Colour.white
             foreground = Colour.blue
+            size = 36
+            font = None
 
         class Yes:
             foreground = Colour.green
@@ -61,10 +71,25 @@ class Scheme:
             background = Colour.orange
 
 
+class Screen(object):
 
+    def __init__(self, name, width, height):
+        self.screen = pygame.display.set_mode((width, height))
+        pygame.display.set_caption(name)
+        self.draw()
 
-defaultTextSize = 24
-bigTextSize = 36
+    def draw(self):
+        self.fill(Theme.Screen.background)
+
+    def fill(self, colour):
+        self.screen.fill(colour)
+
+    def blit(self, surface, rectangle):
+        self.screen.blit(surface, rectangle)
+
+    def flip(self):
+        pygame.display.flip()
+
 
 class Frame(object):
 
@@ -79,11 +104,20 @@ class Frame(object):
 
         self.surface = pygame.Surface((width, height));
         self.rectangle = self.surface.get_rect();
+        self.parent = None
+        self.screen = None
 
         if 'parent' in kwargs:
-            self.parent = kwargs['parent']
+            p = kwargs['parent']
+            if isinstance(p, Screen):
+                self.screen = p
+            elif isinstance(p, Frame):
+                self.parent = p
+                self.screen = self.parent.getScreen()
+            else:
+                raise TypeError('parent must be a frame or screen instance')
         else:
-            self.parent = None
+            raise TypeError('orphaned frame')
 
         if self.parent != None:
             self.rectangle.left = left + self.parent.rectangle.left
@@ -98,12 +132,12 @@ class Frame(object):
         if 'background' in kwargs:
             self.background = kwargs['background']
         else:
-            self.background = Scheme.Frame.background
+            self.background = Theme.Frame.background
 
         if 'foreground' in kwargs:
             self.foreground = kwargs['foreground']
         else:
-            self.foreground = Scheme.Frame.foreground
+            self.foreground = Theme.Frame.foreground
 
         self.surface.fill(self.background)
 
@@ -129,10 +163,19 @@ class Frame(object):
             t = t or c.offClick(pos)
         return t
 
-    def draw(self, screen):
-        screen.blit(self.surface, self.rectangle)
+    def draw(self):
+        self.screen.blit(self.surface, self.rectangle)
         for c in self.children:
-            c.draw(screen)
+            c.draw()
+
+    def drawScreen(self):
+        self.screen.draw()
+
+    def flip(self):
+        self.screen.flip()
+
+    def getScreen(self):
+        return self.screen
 
 
 class Text(Frame):
@@ -140,19 +183,19 @@ class Text(Frame):
     def __init__(self, text, **kwargs):
 
         if 'background' not in kwargs:
-            kwargs['background'] = Scheme.Text.background
+            kwargs['background'] = Theme.Text.background
         if 'foreground' not in kwargs:
-            kwargs['foreground'] = Scheme.Text.foreground
+            kwargs['foreground'] = Theme.Text.foreground
 
         Frame.__init__(self, text, **kwargs)
 
         if 'fontsize' in kwargs:
             self.fontHeight = kwargs['fontsize']
         else:
-            self.fontHeight = defaultTextSize
+            self.fontHeight = Theme.Text.size
         self.xOffset = 5
         self.fontWidth = self.rectangle.width - 2 * self.xOffset
-        self.font = pygame.font.Font(None, self.fontHeight)
+        self.font = pygame.font.Font(Theme.Text.font, self.fontHeight)
         self.lineSize = self.font.get_linesize()
         self.text = text
         self.display()
@@ -161,9 +204,14 @@ class Text(Frame):
         textLines = wrap.wrap(self.text, self.font, self.fontWidth)
         self.surface.fill(self.background)
         y = self.rectangle.height
+        count = 0
         for l in reversed(textLines):
+            count += 1
             y -= self.lineSize
-            renderedLine = self.font.render(l, 1, self.foreground, self.background)
+            if "FAIL" != l[0:4]:
+                renderedLine = self.font.render(l, 1, self.foreground, self.background)
+            else:
+                renderedLine = self.font.render(l, 1, self.background, self.foreground)
             oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
             self.surface.blit(renderedLine, oneline)
             if y < self.lineSize:
@@ -172,24 +220,26 @@ class Text(Frame):
     def append(self, text):
         self.text = ''.join([self.text, text])
         self.display()
+        # special: the next lines update the display
+        self.draw()
+        self.flip()
 
     def clear(self):
         self.text = ""
         self.display()
 
 
-
 class Button(Frame):
     def __init__(self, text, **kwargs):
         if 'background' not in kwargs:
-            kwargs['background'] = Scheme.Button.background
+            kwargs['background'] = Theme.Button.background
         if 'foreground' not in kwargs:
-            kwargs['foreground'] = Scheme.Button.foreground
+            kwargs['foreground'] = Theme.Button.foreground
 
         Frame.__init__(self, text, **kwargs)
 
         self.active = False
-        self.font = pygame.font.Font(None, bigTextSize)
+        self.font = pygame.font.Font(None, Theme.Button.Text.size)
         self.text = text
         if 'callback' in kwargs:
             self.callback = kwargs['callback']
@@ -231,7 +281,9 @@ class Button(Frame):
 
 class Dialog(Frame):
 
-    def __init__(self, message, x, y):
+    def __init__(self, message, x, y, parent):
+        self.x = x
+        self.y = y
         self.width = 400
         self.height = 300
         self.state = False
@@ -240,7 +292,7 @@ class Dialog(Frame):
         bWidth = 120
 
         tWidth = self.width - 20
-        tHeight = 4 * bigTextSize
+        tHeight = 4 * Theme.Dialog.Text.size
 
         self.border = 3
 
@@ -249,22 +301,24 @@ class Dialog(Frame):
         xb = (self.width - 2 * bWidth) / 3
         yb = self.height - yt - bHeight
 
-        Frame.__init__(self, "dialog", rect = (x, y, self.width, self.height), background = Scheme.Dialog.border)
+        Frame.__init__(self, "dialog", rect = (self.x, self.y, self.width, self.height), \
+                           parent = parent, \
+                           background = Theme.Dialog.border)
         self.internal = Frame("bk", \
                                   rect = (self.border, self.border, \
                                               self.width - 2  * self.border, self.height - 2  * self.border), \
-                                  parent = self, background = Scheme.Dialog.background)
+                                  parent = self, background = Theme.Dialog.background)
         self.text = Text(message, rect = (xt, yt, tWidth, tHeight), parent = self.internal, \
-                              foreground = Scheme.Dialog.Text.foreground, background = Scheme.Dialog.Text.background)
+                              foreground = Theme.Dialog.Text.foreground, background = Theme.Dialog.Text.background)
 
         self.yes = Button("YES", rect = (xb, yb, bWidth, bHeight), \
                               parent = self.internal, \
                               callback = self.setState, callbackarg = True, \
-                              foreground = Scheme.Dialog.Yes.foreground, background = Scheme.Dialog.Yes.background)
+                              foreground = Theme.Dialog.Yes.foreground, background = Theme.Dialog.Yes.background)
         self.no = Button("NO", rect = (self.width - xb - bWidth, yb, bWidth, bHeight), \
                              parent = self.internal, \
                              callback = self.setState, callbackarg = False, \
-                             foreground = Scheme.Dialog.No.foreground, background = Scheme.Dialog.No.background)
+                             foreground = Theme.Dialog.No.foreground, background = Theme.Dialog.No.background)
 
     def setState(self, state):
         self.state = state
@@ -275,11 +329,47 @@ class Dialog(Frame):
         self.text.append(text)
 
 
-def eventHandler(screen, frameList):
+    def run(self):
+        save = self.screen.screen.copy()
+        self.draw()
+        self.screen.flip()
+        run = True
+        while run:
+            event = pygame.event.wait()
+            #print 'ev =', event
+            if event.type == pygame.QUIT:
+                sys.exit(0)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                #print event
+                for frame in self.children:
+                    if frame.onClick(event.pos):
+                        break
+                    frame.draw()
+                self.screen.flip()
 
-    screen.fill(Scheme.Event.background)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                #print event
+                for frame in self.children:
+                    if frame.offClick(event.pos):
+                        run = False
+                    frame.draw()
+                self.screen.flip()
+        self.screen.blit(save, save.get_rect())
+        self.screen.flip()
+
+
+
+
+def eventHandler(frameList):
+    if frameList == None:
+        return
+
+    doneScreen = False
     for frame in frameList:
-        frame.draw(screen)
+        if not doneScreen:
+            frame.drawScreen()
+            doneScreen = True
+        frame.draw()
     pygame.display.flip()
 
     run = True
@@ -293,7 +383,7 @@ def eventHandler(screen, frameList):
             for frame in frameList:
                 if frame.onClick(event.pos):
                     break
-                frame.draw(screen)
+                frame.draw()
             pygame.display.flip()
 
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -301,11 +391,11 @@ def eventHandler(screen, frameList):
             for frame in frameList:
                 if frame.offClick(event.pos):
                     run = False
-                frame.draw(screen)
+                frame.draw()
             pygame.display.flip()
-    screen.fill(Scheme.Event.background)
-    pygame.display.flip()
 
+    frameList[0].drawScreen()
+    pygame.display.flip()
 
 
 # main program
@@ -328,16 +418,19 @@ if __name__ == '__main__':
         print "callback - NOP"
         return False
 
-    d = Dialog("Please answer", 50, 100)
+    def cbd(arg):
+        d.run()
+        return False
 
-    size = width, height = 480, 640
-    theScreen = pygame.display.set_mode((width, height))
-    theScreen.fill(Colour.background)
+    width, height = 480, 640
+    s = Screen("Test for Framework", width, height)
 
-    pygame.display.set_caption('Framework test')
+    d = Dialog("Please answer", 50, 100, parent = s)
 
-    x = Frame("x", rect = (0, 0, 320, 240), colour = Colour.grey100)
-    y = Frame("y", rect =(20, 20, 200, 150), parent = x, colour = Colour.yellow)
+    d.run()
+
+    x = Frame("x", rect = (0, 0, 320, 240), parent = s, background = Colour.grey100)
+    y = Frame("y", rect = (20, 20, 200, 150), parent = x, background = Colour.yellow)
 
     z0 = Button("z0", rect = (10, 10, 60, 50), parent = y, callback = cbz)
     z1 = Button("z1", rect = (90, 10, 60, 50), parent = y, callback = cb1)
@@ -350,12 +443,15 @@ if __name__ == '__main__':
     aq2 = Button("ABCDEF", rect = (170, 200, 110, 100), parent = x, callback = cbx, foreground = Colour.white, background = Colour.green)
     aq3 = Button("ABCDEF", rect = (300, 200, 110, 100), parent = x, callback = cbx, foreground = Colour.white, background = Colour.blue)
 
+    bt99 = Button("dialog", rect = (100, 320, 110, 100), parent = x, callback = cbd, foreground = Colour.white, background = Colour.blue)
+
     tOffset = 10
     tWidth = width - 2 * tOffset
-    tHeight = 8 * defaultTextSize
+    tHeight = 8 * Theme.Text.size
     tVertical = height - tHeight - 10
     t = Text("text 1\ntext 2\ntext 3\ntext 4\n", \
                  fontsize = 20, \
+                 parent = s, \
                  rect = (tOffset, tVertical, tWidth, tHeight))
 
-    eventHandler(theScreen, [x, t])
+    eventHandler([x, t])
