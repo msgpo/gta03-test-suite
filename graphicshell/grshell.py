@@ -21,25 +21,22 @@ testDir = '/etc/test.d'
 backupFile = re.compile('^(.*~|.*\.(old|orig|bak))$', re.IGNORECASE)
 
 
-size = width, height = 480, 640
-theScreen = pygame.display.set_mode((width, height))
-theScreen.fill(Colour.pink)
+width, height = 480, 640
+s = Screen('Test shell', width, height)
 
-pygame.display.set_caption('Test Shell')
+dirFrame = Frame("dir", rect = (0, 0, width, height), parent = s, background = Colour.yellow)
 
-dirFrame = Frame("dir", rect = (0, 0, width, height), background = Colour.yellow)
-
+fontsize = 20
 tOffset = 10
 tWidth = width - 2 * tOffset
-tHeight = 8 * defaultTextSize
+tHeight = 8 * fontsize
 tVertical = height - tHeight - 10
-status = Text('', fontsize = 20, rect = (tOffset, tVertical, tWidth, tHeight))
+status = Text('', fontsize = fontsize, rect = (tOffset, tVertical, tWidth, tHeight), parent = s)
 
-dialog = Dialog("Please answer", 50, 100)
 
 def request(prompt):
-    dialog.set(prompt + "\n")
-    eventHandler(theScreen, [status, dialog])
+    dialog = Dialog(prompt + "\n\n", 50, 100, s)
+    dialog.run()
     return dialog.state
 
 
@@ -52,6 +49,8 @@ across = buttonW + offset
 down = buttonH + offset
 
 def runProgram(p):
+    status.draw()
+    status.flip()
     p.run()
     return False
 
@@ -71,4 +70,4 @@ for f in os.listdir(testDir):
                     buttonX = offset
                     buttonY += down
 
-eventHandler(theScreen, [dirFrame, status])
+eventHandler([dirFrame, status])
