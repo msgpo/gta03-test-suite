@@ -5,7 +5,7 @@
 # BEFORE: final interactive
 # AFTER: python_functions
 # SECTION: board gsm
-# MENU: none
+# MENU: GSM
 # DESCRIPTION: test that we can use the GSM module
 # AUTHOR: Guillaume Chereau <charlie@openmoko.org>
 
@@ -185,7 +185,8 @@ class Calypso(Modem):
         """Initialize the modem before we can start sending AT commands
         """
         tests.info("turn modem off")
-        sys_dir = '/sys/devices/platform/neo1973-pm-gsm.0'
+        #sys_dir = '/sys/devices/platform/neo1973-pm-gsm.0'
+        sys_dir = '/sys/bus/platform/drivers/neo1973-pm-gsm/neo1973-pm-gsm.0'
         open('%s/power_on' % sys_dir, 'w').write('0')
         time.sleep(1)
         tests.info("turn modem on")
