@@ -20,8 +20,8 @@ class Theme:
     class Menu:
         background = Colour.yellow
         class Button:
-            foreground = Colour.LightSteelBlue2
-            background = Colour.blue
+            foreground = Colour.LightSteelBlue1
+            background = Colour.RoyalBlue1
             perRow = 3
             perColumn = 7
 

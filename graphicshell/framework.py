@@ -16,13 +16,13 @@ pygame.font.init()
 class Theme:
 
     class Event:
-        background = Colour.pink
+        background = Colour.bisque2
 
     class Screen:
-        background = Colour.pink
+        background = Colour.burlywood
 
     class Frame:
-        background = Colour.grey60
+        background = Colour.grey70
         foreground = Colour.black
 
     class Text:
@@ -43,18 +43,18 @@ class Theme:
         background = Colour.LightSkyBlue
 
         class Text:
-            background = Colour.white
-            foreground = Colour.blue
+            background = Colour.grey97
+            foreground = Colour.DarkBlue
             size = 36
             font = None
 
         class Yes:
-            foreground = Colour.green
-            background = Colour.blue
+            foreground = Colour.DarkOliveGreen1
+            background = Colour.DarkGreen
 
         class No:
-            foreground = Colour.red
-            background = Colour.orange
+            foreground = Colour.pink
+            background = Colour.DarkOrange2
 
 
 class Screen(object):
