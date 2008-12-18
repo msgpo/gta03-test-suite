@@ -20,7 +20,7 @@ class Theme:
     class Menu:
         background = Colour.yellow
         class Button:
-            foreground = Colour.lightSkyBlue
+            foreground = Colour.LightSteelBlue2
             background = Colour.blue
             perRow = 3
             perColumn = 7
@@ -35,10 +35,10 @@ class Theme:
 
         class Default:
             foreground = Colour.blue
-            background = Colour.grey200
+            background = Colour.grey85
         class Pass:
             foreground = Colour.blue
-            background = Colour.paleGreen
+            background = Colour.PaleGreen
         class Fail:
             foreground = Colour.red
             background = Colour.white

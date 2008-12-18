@@ -7,26 +7,10 @@ import sys
 import pygame
 from pygame.locals import *
 import wrap
+from colour import Colour
 
 pygame.display.init()
 pygame.font.init()
-
-
-class Colour:
-
-    blue = (0, 0, 255)
-    green = (0, 255, 0)
-    paleGreen = (160, 255, 160)
-    red = (255, 0, 0)
-    yellow = (255, 255, 0)
-    orange = (255, 165, 0)
-    black = (0, 0, 0)
-    grey100 = (100, 100, 100)
-    grey150 = (150, 150, 150)
-    grey200 = (200, 200, 200)
-    white = (255, 255, 255)
-    pink = (255, 200, 200)
-    lightSkyBlue = (135, 206, 250)
 
 
 class Theme:
@@ -38,7 +22,7 @@ class Theme:
         background = Colour.pink
 
     class Frame:
-        background = Colour.grey150
+        background = Colour.grey60
         foreground = Colour.black
 
     class Text:
@@ -56,7 +40,7 @@ class Theme:
 
     class Dialog:
         border = Colour.black
-        background = Colour.lightSkyBlue
+        background = Colour.LightSkyBlue
 
         class Text:
             background = Colour.white
@@ -438,7 +422,7 @@ if __name__ == '__main__':
 
     d.run()
 
-    x = Frame("x", rect = (0, 0, 320, 240), parent = s, background = Colour.grey100)
+    x = Frame("x", rect = (0, 0, 320, 240), parent = s, background = Colour.grey40)
     y = Frame("y", rect = (20, 20, 200, 150), parent = x, background = Colour.yellow)
 
     z0 = Button("z0", rect = (10, 10, 60, 50), parent = y, callback = cbz)
