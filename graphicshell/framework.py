@@ -326,6 +326,8 @@ class Dialog(Frame):
         save = self.screen.screen.copy()
         self.draw()
         self.screen.flip()
+        pygame.event.clear()
+
         run = True
         while run:
             event = pygame.event.wait()
