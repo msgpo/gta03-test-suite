@@ -4,6 +4,7 @@
 # DESCRIPTION: Simple frame and dialog box framework
 
 import sys
+import types
 import pygame
 from pygame.locals import *
 import wrap
@@ -55,6 +56,54 @@ class Theme:
         class No:
             foreground = Colour.pink
             background = Colour.DarkOrange2
+
+
+class EventHandler:
+
+    def __init__(self, frames, retain = False):
+        self.retainBackground = retain
+        if isinstance(frames, types.ListType):
+            self.frameList = frames
+        else:
+            self.frameList = [frames]
+
+    def prepend(self, frame):
+        self.frameList.insert(0, frame)
+
+    def remove(self, frame):
+        self.frameList.remove(frame)
+
+    def refresh(self):
+        doneScreen = self.retainBackground
+        for frame in self.frameList:
+            if not doneScreen:
+                frame.drawScreen()
+                doneScreen = True
+            frame.draw()
+        pygame.display.flip()
+
+    def run(self):
+        self.refresh()
+        run = True
+        pygame.event.clear()
+        while run:
+            event = pygame.event.wait()
+            if event.type == pygame.QUIT:
+                sys.exit(0)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for frame in self.frameList:
+                    if frame.onClick(event.pos):
+                        break
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                for frame in self.frameList:
+                    if frame.offClick(event.pos):
+                        run = False
+                        break
+            self.refresh()
+
+        self.frameList[0].drawScreen()
+        pygame.display.flip()
 
 
 class Screen(object):
@@ -173,7 +222,7 @@ class Text(Frame):
         if 'foreground' not in kwargs:
             kwargs['foreground'] = Theme.Text.foreground
 
-        Frame.__init__(self, text, **kwargs)
+        Frame.__init__(self, "text", **kwargs)
 
         if 'fontsize' in kwargs:
             self.fontHeight = kwargs['fontsize']
@@ -327,70 +376,9 @@ class Dialog(Frame):
         self.draw()
         self.screen.flip()
         pygame.event.clear()
-
-        run = True
-        while run:
-            event = pygame.event.wait()
-            #print 'ev =', event
-            if event.type == pygame.QUIT:
-                sys.exit(0)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                #print event
-                for frame in self.children:
-                    if frame.onClick(event.pos):
-                        break
-                    frame.draw()
-                self.screen.flip()
-
-            elif event.type == pygame.MOUSEBUTTONUP:
-                #print event
-                for frame in self.children:
-                    if frame.offClick(event.pos):
-                        run = False
-                    frame.draw()
-                self.screen.flip()
+        EventHandler(self, True).run()
         self.screen.blit(save, save.get_rect())
         self.screen.flip()
-
-
-
-
-def eventHandler(frameList):
-    if frameList == None:
-        return
-
-    doneScreen = False
-    for frame in frameList:
-        if not doneScreen:
-            frame.drawScreen()
-            doneScreen = True
-        frame.draw()
-    pygame.display.flip()
-
-    run = True
-    while run:
-        event = pygame.event.wait()
-        #print 'ev =', event
-        if event.type == pygame.QUIT:
-            sys.exit(0)
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            #print event
-            for frame in frameList:
-                if frame.onClick(event.pos):
-                    break
-                frame.draw()
-            pygame.display.flip()
-
-        elif event.type == pygame.MOUSEBUTTONUP:
-            #print event
-            for frame in frameList:
-                if frame.offClick(event.pos):
-                    run = False
-                frame.draw()
-            pygame.display.flip()
-
-    frameList[0].drawScreen()
-    pygame.display.flip()
 
 
 # main program
@@ -449,4 +437,4 @@ if __name__ == '__main__':
                  parent = s, \
                  rect = (tOffset, tVertical, tWidth, tHeight))
 
-    eventHandler([x, t])
+    EventHandler([x, t]).run()
