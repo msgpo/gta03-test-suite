@@ -19,11 +19,16 @@ class Theme:
 
     class Menu:
         background = Colour.yellow
+
         class Button:
             foreground = Colour.LightSteelBlue1
             background = Colour.RoyalBlue1
             perRow = 3
             perColumn = 7
+
+        class Control:
+            foreground = Colour.brown
+            background = Colour.LightGoldenrod
 
     class Dialog:
         x = 50
@@ -54,8 +59,6 @@ backupFile = re.compile('^(.*~|.*\.(old|orig|bak))$', re.IGNORECASE)
 
 s = Screen('Test shell', Theme.width, Theme.height)
 
-dirFrame = Frame("dir", rect = (0, 0, Theme.width, Theme.height), parent = s, background = Theme.Menu.background)
-
 # the gaps bwtween everything
 
 tWidth = Theme.width - 2 * Theme.gap
@@ -78,6 +81,8 @@ def request(prompt):
 
 programList = []
 buttonList = []
+dirList = []
+
 
 buttonW = (Theme.width - (Theme.Menu.Button.perRow + 1) * Theme.gap) / Theme.Menu.Button.perRow
 buttonH = (Theme.height - (Theme.Menu.Button.perColumn + 2) * Theme.gap - tHeight) / Theme.Menu.Button.perColumn
@@ -85,11 +90,33 @@ buttonH = (Theme.height - (Theme.Menu.Button.perColumn + 2) * Theme.gap - tHeigh
 across = buttonW + Theme.gap
 down = buttonH + Theme.gap
 
+# reserve one row of buttons for controls
+buttonsPerPage = Theme.Menu.Button.perRow * (Theme.Menu.Button.perColumn - 1)
+
 def runProgram(p):
     status.draw()
     status.flip()
     p.run()
     return False
+
+page = 0
+def changePage(direction):
+    global page
+    current = dirList[page]
+    page += direction
+    l = len(dirList)
+    if page < 0:
+        page = l - 1
+    elif page >= l:
+        page = 0
+    e.remove(current)
+    e.prepend(dirList[page])
+    e.refresh()
+
+# create a list of frames containing menu buttons
+buttonCount = 0
+dirFrame = None
+dirPage = 0
 
 for f in os.listdir(testDir):
     if not backupFile.match(f):
@@ -99,14 +126,39 @@ for f in os.listdir(testDir):
             p = Process(name, request, status.append)
             if p != None and p.runnable:
                 programList.append(p)
+
+                if dirFrame == None:
+                    dirPage += 1
+                    dirFrame = Frame("dir%d" % dirPage, rect = (0, 0, Theme.width, Theme.height), \
+                                         parent = s, background = Theme.Menu.background)
+                    prev = Button("<<", rect = (buttonX, buttonY, buttonW, buttonH), \
+                                      background = Theme.Menu.Control.background, \
+                                      foreground = Theme.Menu.Control.foreground, \
+                                      parent = dirFrame, callback = changePage, callbackarg = -1)
+                    buttonX += across * (Theme.Menu.Button.perRow - 1)
+                    prev = Button(">>", rect = (buttonX, buttonY, buttonW, buttonH), \
+                                      background = Theme.Menu.Control.background, \
+                                      foreground = Theme.Menu.Control.foreground, \
+                                      parent = dirFrame, callback = changePage, callbackarg = 1)
+                    buttonX = Theme.gap
+                    buttonY += down
+                    dirList.append(dirFrame)
                 b = Button(p.menu, rect = (buttonX, buttonY, buttonW, buttonH), \
                                background = Theme.Menu.Button.background, \
                                foreground = Theme.Menu.Button.foreground, \
                                parent = dirFrame, callback = runProgram, callbackarg = p)
                 buttonList.append(b)
+                buttonCount += 1
                 buttonX += across
                 if buttonX + buttonW > Theme.width:
                     buttonX = Theme.gap
-                    buttonY += down
+                    if buttonCount >= buttonsPerPage:
+                        buttonCount = 0
+                        dirFrame = None
+                        buttonY = Theme.gap
+                    else:
+                        buttonY += down
 
-eventHandler([dirFrame, status])
+# setup and display the first screen
+e = EventHandler([dirList[0], status])
+e.run()
