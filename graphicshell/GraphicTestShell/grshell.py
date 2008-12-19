@@ -7,7 +7,10 @@ import sys
 from stat import *
 import os
 import re
-from framework import *
+
+from SimpleFramework.framework import *
+from SimpleFramework.colour import Colour
+
 from process import *
 import pygame
 from pygame.locals import *
