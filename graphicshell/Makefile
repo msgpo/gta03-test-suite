@@ -7,7 +7,7 @@ MAN =
 
 RM = rm -f
 INSTALL = install
-SETUP = python setup.py build
+SETUP = python setup.py
 
 
 CFLAGS+=
