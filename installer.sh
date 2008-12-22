@@ -236,6 +236,7 @@ BuildRootFileSystem()
 
   # add the test suite
   RBLD --install om-test-suite
+  RBLD --install om-test-shell
 }
 
 
@@ -285,40 +286,34 @@ GetTheKernel()
 
 
 
-# temporary hacks until om-gta03 established
+# Fixes any broken OE installed files
 ApplyFixes()
 {
+  # common fixes
+  FixBinTrue
+
+  # platform specific fixes
   case "${PLATFORM}" in
     [gG][tT][aA]02)
+      #FixGTA02
       ;;
 
     [gG][tT][aA]03)
-      FixGTA03
+      #FixGTA03
       ;;
   esac
 }
 
 
-FixGTA03()
+# if trux is a symlink to busybox replace it by an empty file
+# this so that things that symlink to true do not cause
+# busybox applet not found (or worse errors
+FixBinTrue()
 {
   (
-    local suffix='.ORIG'
+    # if true is not symlinked, skip changes
+    [ -L "${StageDirectory}/bin/true" ] || exit 0
 
-    FakeRoot find "${StageDirectory}" -name '*'"${suffix}" -delete
-
-    # correct console, remove framebuffer login
-    FakeRoot sed --in-place="${suffix}" '
-             s@ttySAC2@ttySAC3@g;
-             s@^1:@# &@;
-             ' "${StageDirectory}/etc/inittab"
-
-    # correct rootfs device
-    FakeRoot sed --in-place="${suffix}" '
-             \@^/dev/mtdblock4@{s@@/dev/mmcblk0p2@;s@jffs2@auto@;P;D}
-             \@^/dev/mmcblk0p1@{s@@/dev/mtdblock4@;s@\([[:space:]]\)auto@\1jffs2@;P;D}
-             ' "${StageDirectory}/etc/fstab"
-
-    # fix busybox splash-write error
     FakeRoot rm -f "${StageDirectory}/bin/true"
     FakeRoot touch "${StageDirectory}/bin/true"
     FakeRoot chown 0:0 "${StageDirectory}/bin/true"
@@ -328,7 +323,7 @@ FixGTA03()
     )
   if [ $? -ne 0 ]
   then
-    ERROR FixGTA03 failed
+    ERROR FixBinTrue failed
   fi
 }
 
@@ -475,8 +470,8 @@ then
   GetTheKernel
 fi
 
-# maybe this is obsolete
-#ApplyFixes
+# fix some things
+ApplyFixes
 
 # create an archive of the stage directory
 rm -f "${RootFSArchive}"
