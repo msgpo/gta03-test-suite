@@ -1,6 +1,6 @@
 # Makefile
 
-SUBDIRS = scripts rcorder test.d
+SUBDIRS = scripts rcorder test.d graphicshell
 
 RM = rm -f
 INSTALL = echo install

@@ -1,0 +1,4 @@
+#!/bin/sh
+#[ ! -e /dev/input/tslib0 ] && ln -s touchscreen0 /dev/input/tslib0
+
+exec python -m GraphicTestShell
