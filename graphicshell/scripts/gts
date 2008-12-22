@@ -1,4 +1,7 @@
 #!/bin/sh
-#[ ! -e /dev/input/tslib0 ] && ln -s touchscreen0 /dev/input/tslib0
+[ ! -e /dev/input/tslib0 -a -e /dev/input/tslib0/touchscreen0 ] && ln -s touchscreen0 /dev/input/tslib0
 
-exec python -m GraphicTestShell
+# python missing runpy on dev.openmoko.org so cannot use:
+#exec python -m GraphicTestShell
+#workaround
+exec python -c 'import GraphicTestShell'
