@@ -1,6 +1,10 @@
 # Makefile
 
-SUBDIRS = scripts rcorder test.d graphicshell
+SUBDIRS = scripts rcorder test.d
+
+# the direcories below cannot be compiled by OE in one pass, so are
+# split out as separate packages
+SEPARATE_DIRS = graphicshell
 
 RM = rm -f
 INSTALL = echo install
