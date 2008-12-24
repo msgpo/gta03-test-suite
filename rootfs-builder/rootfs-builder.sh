@@ -64,6 +64,14 @@ STATUS()
   echo '===>' $*
 }
 
+# display a error and abort
+ERROR()
+{
+  echo '===>' $*
+  echo script terminated
+  exit 1
+}
+
 
 # display a command an ask for permission to sudo it
 # if already under sudo the just run the command
@@ -150,14 +158,14 @@ EOF
 
 # start of main program
 
-[ -n "${SUDO_UID}" -o -n "${SUDO_GID}" ] && usage just do not run this with sudo or it will corrupt the host system
+[ -n "${SUDO_UID}" -o -n "${SUDO_GID}" ] && ERROR just do not run this with sudo or it will corrupt the host system
 
 
 # locate programs
 
-[ -x "${OPKG_PROGRAM}" ] || usage unable to locate opkg binary, check installation of Openmoko toolchain
+[ -x "${OPKG_PROGRAM}" ] || ERROR unable to locate opkg binary, check installation of Openmoko toolchain
 
-[ -z "$(which fakeroot)" ] && usage install the fakeroot package
+[ -z "$(which fakeroot)" ] && ERROR install the fakeroot package
 
 
 # check opkg version
@@ -165,12 +173,12 @@ EOF
 version=$("${OPKG_PROGRAM}" --version | awk '{print $3}')
 case "${version}" in
   0.1.0|0.1.1|0.1.2|0.1.3|0.1.4|0.1.5)
-    usage opkg version ${vesion} is too old
+    ERROR opkg version ${vesion} is too old
     ;;
   0.1.*)
     ;;
   *)
-    usage opkg version ${vesion} is not tested/supported yet
+    ERROR opkg version ${vesion} is not tested/supported yet
     ;;
 esac
 
@@ -281,7 +289,7 @@ FakerootDatabase="${rootfs}.frdb"
 STATUS rootfs = ${rootfs}
 STATUS URL = ${URL}
 
-[ X"${command}" != X"init" -a ! -d "${rootfs}" ] && usage root directory not inititilaised
+[ X"${command}" != X"init" -a ! -d "${rootfs}" ] && ERROR root directory not inititilaised
 
 
 # process command
@@ -324,7 +332,7 @@ case "${command}" in
       then
         device_table="${INTERNAL_DEVICE_TABLE}"
       else
-        usage internal error: no device tables found
+        ERROR internal error: no device tables found
       fi
     fi
 
@@ -334,6 +342,8 @@ case "${command}" in
     SUDO rm -f "${rootfs}/dev/"*
     SUDO ${MKDEV} --root="${rootfs}" --devtable="${device_table}"
     # --squash           Squash permissions and owners making all files be owned by root
+    rc="$?"
+    [ "${rc}" -ne 0 ] && ERROR "make devices failed [${rc}]" 
     ;;
 
   install)
