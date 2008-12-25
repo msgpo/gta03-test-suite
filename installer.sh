@@ -22,6 +22,7 @@ ConfigurationFile=$(readlink -m .installerrc)
 StageDirectory="${BuildDirectory}/rootfs"
 
 MountPoint="${BuildDirectory}/mnt"
+MountPointTag="${BuildDirectory}/mnt/.not_mounted_yet"
 
 RootFSArchive="${BuildDirectory}/rootfs.tar.bz2"
 
@@ -122,7 +123,7 @@ INFO()
 ERROR()
 {
   echo ERROR: $*
-  return 1
+  exit 1
 }
 
 
@@ -252,6 +253,7 @@ UnmountSDCard()
   if SDCardMounted
   then
     SUDO umount  "/dev/${SDCardDevice}"* "${MountPoint}"
+    [ -e "${MountPointTag}" ] || ERROR unmount has failed
   fi
   return 0
 }
@@ -259,10 +261,13 @@ UnmountSDCard()
 
 MountSDCard()
 {
+  local rc
   if ! SDCardMounted
   then
     SUDO mount  "/dev/${SDCardDevice}${SDCardPartition}" "${MountPoint}"
-    return $?
+    rc="$?"
+    [ -e "${MountPointTag}" ] && ERROR mount has failed
+    return "${rc}"
   fi
   return 0
 }
@@ -363,7 +368,7 @@ InstallRootFileSystem()
   if [ -f "${RootFSArchive}" ]
   then
     (
-      MountSDCard || exit 1
+      MountSDCard || ERROR failed to properly mount SD Card
 
       SUDO tar xf "${RootFSArchive}" -C "${MountPoint}/"
       rc="$?"
@@ -389,6 +394,7 @@ InstallRootFileSystem()
     ERROR Missing rootfs archive '(not built yes?)'
   fi
 }
+
 
 YesOrNo()
 {
@@ -461,6 +467,7 @@ mkdir -p "${BuildDirectory}" || usage failed to create ${BuildDirectory}
 mkdir -p "${StageDirectory}" || usage failed to create ${StageDirectory}
 mkdir -p "${CacheDirectory}" || usage failed to create ${StageDirectory}
 mkdir -p "${MountPoint}" || usage failed to create ${MountPoint}
+mkdir -p "${MountPointTag}" || usage failed to create ${MountPointTag}
 
 
 # build an image in the stage directory
