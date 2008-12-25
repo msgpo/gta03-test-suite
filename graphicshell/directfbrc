@@ -1,0 +1,7 @@
+linux-input-ir-only
+disable-module=ps2mouse
+no-cursor
+disable-module=linux_input
+#mouse-source=/dev/input/touchscreen0
+#mouse-protocol=tslib
+debug

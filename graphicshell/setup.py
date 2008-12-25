@@ -13,7 +13,7 @@ setup(name='GraphicTestShell',
       #download_url='http://www.openmoko.com/somewhere/',
       packages=['GraphicTestShell', 'SimpleFramework'],
       scripts=['scripts/gts'],
-      #data_files=[('/etc', ['directfbrc'])],
+      data_files=[('/etc', ['configuration/directfbrc'])],
       classifiers=[
           'Development Status :: Beta',
           'Environment :: Frame buffer',
