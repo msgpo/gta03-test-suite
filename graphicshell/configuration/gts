@@ -1,0 +1,89 @@
+#!/bin/sh
+# GraphicTestShell start up script
+
+PID_FILE=/var/run/gts.pid
+GTS=/usr/bin/gts
+
+[ -x "${GTS}" ] || exit 1
+
+GtsPID()
+{
+  local pid
+  if [ -e "${PID_FILE}" ]
+  then
+    pid="$(cat "${PID_FILE}")"
+    if ps -p "${pid}" -o cmd | grep -q '[G]raphicTestShell'
+    then
+      echo ${pid}
+      return 0
+    fi
+  fi
+  pid="$(ps -A -o pid,cmd | grep  '[G]raphicTestShell' |awk '{print $1}')"
+  [ -z "${pid}" ] && return 1
+  echo ${pid}
+  return 0
+}
+
+GtsIsRunning()
+{
+  GtsPID >/dev/null
+}
+
+gts_status()
+{
+  if GtsIsRunning
+  then
+    echo running on $(GtsPID)
+  else
+    echo stopped
+  fi
+}
+
+gts_stop()
+{
+  if GtsIsRunning
+  then
+    kill "$(GtsPID)"
+  else
+    echo already stopped
+  fi
+}
+
+gts_start()
+{
+  if ! GtsIsRunning
+  then
+    rm -f "${PID_FILE}"
+    ${GTS} &
+    echo $! > "${PID_FILE}"
+  else
+    echo already running
+  fi
+}
+
+
+case "$1" in
+  start)
+    gts_start
+    ;;
+
+  restart|reload|force-reload)
+    gts_stop
+    gts_start
+    ;;
+
+  stop)
+    gts_stop
+    ;;
+
+  status)
+    gts_status
+    ;;
+
+  *)
+    echo "usage: $(basename "$0")/etc/init.d/x11-common {start|stop|status|restart|reload|force-reload}"
+    exit 1
+    ;;
+esac
+
+exit 0
