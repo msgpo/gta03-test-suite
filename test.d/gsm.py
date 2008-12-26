@@ -16,6 +16,9 @@ import re
 import tests
 
 
+ConfigurationFile = '/etc/test.d/tests.cfg'
+
+
 def try_loop(func, nb=5, sleep=None, msg="do the command"):
     """Try to run a function a number of time until it succeed"""
     for i in range(nb):
@@ -226,7 +229,7 @@ class GSMTest(tests.Test):
                 raise
 
     def run(self):
-        self.conf = tests.parse_conf('tests.cfg')
+        self.conf = tests.parse_conf(ConfigurationFile)
 
         self.modem = Calypso('/dev/ttySAC0')
         self.modem.reset()
