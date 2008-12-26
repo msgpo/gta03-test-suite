@@ -232,35 +232,42 @@ class Text(Frame):
         self.fontWidth = self.rectangle.width - 2 * self.xOffset
         self.font = pygame.font.Font(Theme.Text.font, self.fontHeight)
         self.lineSize = self.font.get_linesize()
+        self.maxLines = self.rectangle.height / self.lineSize
+        self.currentLines = 0
         self.text = text
         self.tags = []
+        self.offsetY = 1
+        self.active = False
         self.display()
 
     def display(self):
         textLines = wrap.wrap(self.text, self.font, self.fontWidth)
+        self.currentLines = len(textLines)
         self.surface.fill(self.background)
         y = self.rectangle.height
         count = 0
         for l in reversed(textLines):
             count += 1
-            y -= self.lineSize
-            rendered = False
-            for len, substr, fg, bg in self.tags:
-                if substr == l[0:len]:
-                    renderedLine = self.font.render(l, 1, fg, bg)
-                    rendered = True
-            if not rendered:
-                renderedLine = self.font.render(l, 1, self.foreground, self.background)
-            oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
-            self.surface.blit(renderedLine, oneline)
-            if y < self.lineSize:
-                break
+            if count >= self.offsetY:
+                y -= self.lineSize
+                rendered = False
+                for length, substr, fg, bg in self.tags:
+                    if substr == l[0:length]:
+                        renderedLine = self.font.render(l, 1, fg, bg)
+                        rendered = True
+                if not rendered:
+                    renderedLine = self.font.render(l, 1, self.foreground, self.background)
+                oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
+                self.surface.blit(renderedLine, oneline)
+                if y < self.lineSize:
+                    break
 
     def addTag(self, tag, foreground, background):
         self.tags += [(len(tag), tag, foreground, background)]
 
     def append(self, text):
         self.text = ''.join([self.text, text])
+        self.offsetY = 1
         self.display()
         # special: the next lines update the display
         self.draw()
@@ -269,6 +276,24 @@ class Text(Frame):
     def clear(self):
         self.text = ""
         self.display()
+
+    def onClick(self, pos):
+        if self.rectangle.collidepoint(pos):
+            self.active = True
+            self.pos = pos
+        return False
+
+    def offClick(self, pos):
+        if self.active:
+            self.active = False
+            deltaY = (self.pos[1] - pos[1]) / self.lineSize
+            self.offsetY += deltaY
+            if self.offsetY < 1:
+                self.offsetY = 1
+            elif self.offsetY > self.currentLines - self.maxLines + 1:
+                self.offsetY = self.currentLines - self.maxLines + 1
+            self.display()
+        return False
 
 
 class Button(Frame):
