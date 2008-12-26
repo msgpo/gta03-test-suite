@@ -94,13 +94,13 @@ class EventHandler:
                 for frame in self.frameList:
                     if frame.onClick(event.pos):
                         break
-
+                self.refresh()
             elif event.type == pygame.MOUSEBUTTONUP:
                 for frame in self.frameList:
                     if frame.offClick(event.pos):
                         run = False
                         break
-            self.refresh()
+                self.refresh()
 
         self.frameList[0].drawScreen()
         pygame.display.flip()
@@ -249,18 +249,18 @@ class Text(Frame):
             self.changed = False
         self.surface.fill(self.background)
         y = self.rectangle.height
-        count = 0
-        slice = -self.offsetY
-        if slice == 0:
+        if self.offsetY == 0:
             slice = None
+        else:
+            slice = -self.offsetY
         for l in reversed(self.cache[:slice]):
-            count += 1
             y -= self.lineSize
             rendered = False
             for length, substr, fg, bg in self.tags:
                 if substr == l[0:length]:
                     renderedLine = self.font.render(l, 1, fg, bg)
                     rendered = True
+                    break
             if not rendered:
                 renderedLine = self.font.render(l, 1, self.foreground, self.background)
             oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
@@ -282,6 +282,7 @@ class Text(Frame):
 
     def clear(self):
         self.text = ""
+        self.changed = True
         self.display()
 
     def onClick(self, pos):
