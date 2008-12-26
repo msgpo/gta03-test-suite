@@ -54,8 +54,11 @@ gts_start()
   if ! GtsIsRunning
   then
     rm -f "${PID_FILE}"
-    ${GTS} &
-    echo $! > "${PID_FILE}"
+    (
+      cd /tmp
+      ${GTS} &
+      echo $! > "${PID_FILE}"
+      )
   else
     echo already running
   fi
