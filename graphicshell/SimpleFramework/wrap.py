@@ -67,5 +67,12 @@ a quick separator
 FAIL: invalid parameter: /sys/devices/platform/gta02-led.0/leds/gta02-aux:red/brightness and: /sys/devices/platform/gta02-led.0/leds/gta02-aux:red/dimness
 """, font, fw)
 
+    print "1. length of array = %d" % len(lines)
     for l in lines:
         print l
+
+    lines = wrap("", font, fw)
+    print "2. length of array = %d" % len(lines)
+    for l in lines:
+        print l
+
