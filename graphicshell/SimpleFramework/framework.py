@@ -236,38 +236,45 @@ class Text(Frame):
         self.currentLines = 0
         self.text = text
         self.tags = []
-        self.offsetY = 1
+        self.offsetY = 0
         self.active = False
+        self.changed = True
+        self.cache = []
         self.display()
 
     def display(self):
-        textLines = wrap.wrap(self.text, self.font, self.fontWidth)
-        self.currentLines = len(textLines)
+        if self.changed:
+            self.cache = wrap.wrap(self.text, self.font, self.fontWidth)
+            self.currentLines = len(self.cache)
+            self.changed = False
         self.surface.fill(self.background)
         y = self.rectangle.height
         count = 0
-        for l in reversed(textLines):
+        slice = -self.offsetY
+        if slice == 0:
+            slice = None
+        for l in reversed(self.cache[:slice]):
             count += 1
-            if count >= self.offsetY:
-                y -= self.lineSize
-                rendered = False
-                for length, substr, fg, bg in self.tags:
-                    if substr == l[0:length]:
-                        renderedLine = self.font.render(l, 1, fg, bg)
-                        rendered = True
-                if not rendered:
-                    renderedLine = self.font.render(l, 1, self.foreground, self.background)
-                oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
-                self.surface.blit(renderedLine, oneline)
-                if y < self.lineSize:
-                    break
+            y -= self.lineSize
+            rendered = False
+            for length, substr, fg, bg in self.tags:
+                if substr == l[0:length]:
+                    renderedLine = self.font.render(l, 1, fg, bg)
+                    rendered = True
+            if not rendered:
+                renderedLine = self.font.render(l, 1, self.foreground, self.background)
+            oneline = pygame.Rect(self.xOffset, y, self.fontWidth, self.fontHeight)
+            self.surface.blit(renderedLine, oneline)
+            if y < self.lineSize:
+                break
 
     def addTag(self, tag, foreground, background):
         self.tags += [(len(tag), tag, foreground, background)]
 
     def append(self, text):
         self.text = ''.join([self.text, text])
-        self.offsetY = 1
+        self.offsetY = 0
+        self.changed = True
         self.display()
         # special: the next lines update the display
         self.draw()
@@ -288,10 +295,10 @@ class Text(Frame):
             self.active = False
             deltaY = (self.pos[1] - pos[1]) / self.lineSize
             self.offsetY += deltaY
-            if self.offsetY < 1:
-                self.offsetY = 1
-            elif self.offsetY > self.currentLines - self.maxLines + 1:
-                self.offsetY = self.currentLines - self.maxLines + 1
+            if self.offsetY < 0:
+                self.offsetY = 0
+            elif self.offsetY > self.currentLines - self.maxLines:
+                self.offsetY = self.currentLines - self.maxLines
             self.display()
         return False
 
