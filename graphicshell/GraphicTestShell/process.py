@@ -13,7 +13,7 @@ class Process:
     MENU_RE = re.compile('^\s*#\s*MENU\s*:\s*(\S.*\S)\s*.*$', re.IGNORECASE)
     NONE_RE = re.compile('^\s*none\s*$', re.IGNORECASE)
     PROMPT_TIME = 100
-    BUFFER_SIZE = 128
+    BUFFER_SIZE = 65536
 
     def __init__(self, fileName, requestor, callback):
         self.name = fileName
