@@ -235,6 +235,8 @@ BuildRootFileSystem()
   # install some additional apps
   #RBLD --install python-lang
 
+  RBLD --install i2c-tools
+
   # add the test suite
   RBLD --install om-test-suite
   RBLD --install om-test-shell
