@@ -22,7 +22,7 @@ ConfigurationFile=$(readlink -m .installerrc)
 StageDirectory="${BuildDirectory}/rootfs"
 
 MountPoint="${BuildDirectory}/mnt"
-MountPointTag="${BuildDirectory}/mnt/.not_mounted_yet"
+MountPointTag="${MountPoint}/.not_mounted_yet"
 
 RootFSArchive="${BuildDirectory}/rootfs.tar.bz2"
 
@@ -264,10 +264,13 @@ MountSDCard()
   local rc
   if ! SDCardMounted
   then
+    [ ! -e "${MountPointTag}" ] && ERROR tag missing from mount point
     SUDO mount  "/dev/${SDCardDevice}${SDCardPartition}" "${MountPoint}"
     rc="$?"
-    [ -e "${MountPointTag}" ] && ERROR mount has failed
+    [ -e "${MountPointTag}" ] && ERROR mount has failed - turn off automounting
     return "${rc}"
+  else
+    [ -e "${MountPointTag}" ] && ERROR mount has failed - turn off automounting
   fi
   return 0
 }
