@@ -229,7 +229,10 @@ class GSMTest(tests.Test):
                 raise
 
     def run(self):
-        self.conf = tests.parse_conf(ConfigurationFile)
+        try:
+            self.conf = tests.parse_conf(ConfigurationFile)
+        except IOError:
+            self.conf = tests.parse_conf('./tests.cfg')
 
         self.modem = Calypso('/dev/ttySAC0')
         self.modem.reset()
