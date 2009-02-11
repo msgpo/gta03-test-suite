@@ -25,13 +25,13 @@ def try_loop(func, nb=5, sleep=None, msg="do the command"):
         try:
             return func()
         except Exception, ex:
-            tests.info("fail to %s : %s" % msg, ex)
+            tests.info("fail to %s : %s", msg, ex)
             if sleep:
-                tests.info("sleep %d seconds" % sleep)
+                tests.info("sleep %d seconds", sleep)
                 time.sleep(sleep)
             tests.info("retrying")
     else:
-        raise Exception("give up to %s" % msg)
+        raise Exception("give up to %s", msg)
 
 
 class ATError(Exception):
