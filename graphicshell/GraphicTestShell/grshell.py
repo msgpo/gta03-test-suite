@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-# COPYRIGHT: Openmoko Inc. 2008
+# -*- coding: utf-8 -*-
+# COPYRIGHT: Openmoko Inc. 2009
 # LICENSE: GPL Version 2 or later
 # DESCRIPTION: Main graphic shell
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 import sys
 from stat import *

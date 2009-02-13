@@ -1,4 +1,8 @@
 #!/usr/bin/env ruby
+# COPYRIGHT: Openmoko Inc. 2009
+# LICENSE: GPL Version 2 or later
+# DESCRIPTION: convert the X11 rgp.txt to a Python file
+# AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 xorg_rgb = '/etc/X11/rgb.txt'
 

@@ -1,0 +1,67 @@
+The files in this directory tree are distibuted under GNU or BSD licenses
+see the Licenses directory for the complete license texts.
+
+For files with an abbreviated license statement like:
+
+  # LICENSE: GPL Version 2 or later
+
+The following disclaimer applies.
+
+
+Copyright (C) 2008, 2009 Openmoko Inc.
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+
+======================================================================
+
+
+The rcorder program is distributed under a BSD license and the disclaimer
+is present in the individual files.
+The original sources were obtained from here:
+
+http://www.freebsd.org/cgi/cvsweb.cgi/src/sbin/rcorder/
+
+
+NOTE: The copyright of UC Berkeley's Berkeley Software Distribution ("BSD")
+source has been updated.  The copyright addendum may be found at
+ftp://ftp.cs.berkeley.edu/pub/4bsd/README.Impt.License.Change and is
+included below.
+
+July 22, 1999
+
+To All Licensees, Distributors of Any Version of BSD:
+
+As you know, certain of the Berkeley Software Distribution ("BSD") source
+code files require that further distributions of products containing all or
+portions of the software, acknowledge within their advertising materials
+that such products contain software developed by UC Berkeley and its
+contributors.
+
+Specifically, the provision reads:
+
+"     * 3. All advertising materials mentioning features or use of this software
+      *    must display the following acknowledgement:
+      *    This product includes software developed by the University of
+      *    California, Berkeley and its contributors."
+
+Effective immediately, licensees and distributors are no longer required to
+include the acknowledgement within advertising materials.  Accordingly, the
+foregoing paragraph of those BSD Unix files containing it is hereby deleted
+in its entirety.
+
+William Hoskins
+Director, Office of Technology Licensing
+University of California, Berkeley
