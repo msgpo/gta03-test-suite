@@ -123,7 +123,9 @@ buttonCount = 0
 dirFrame = None
 dirPage = 0
 
-for f in os.listdir(testDir):
+dl = os.listdir(testDir)
+dl.sort()
+for f in dl:
     if not backupFile.match(f):
         name = os.path.join(testDir, f)
         m = os.stat(name)[ST_MODE]
