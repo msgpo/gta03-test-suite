@@ -71,8 +71,7 @@ case "$1" in
     ;;
 
   restart|reload|force-reload)
-    gts_stop
-    gts_start
+    gts_stop && sleep 3 && gts_start
     ;;
 
   stop)
