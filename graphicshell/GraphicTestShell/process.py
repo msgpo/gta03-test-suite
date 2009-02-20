@@ -28,7 +28,6 @@ class Process:
         for line in f:
             m = Process.MENU_RE.match(line)
             if m:
-                print "M:", line
                 menuName = m.group(1)
                 if not Process.NONE_RE.match(menuName):
                   self.menu = menuName
