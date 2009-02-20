@@ -12,8 +12,8 @@ import select
 
 class Process:
 
-    MENU_RE = re.compile('^\s*#\s*MENU\s*:\s*(\S.*\S)\s*.*$', re.IGNORECASE)
-    NONE_RE = re.compile('^\s*none\s*$', re.IGNORECASE)
+    MENU_RE = re.compile(r'^\s*#\s*MENU\s*:\s*(\S+(\s+\S+)*)\s*$', re.IGNORECASE)
+    NONE_RE = re.compile(r'^\s*none\s*$', re.IGNORECASE)
     PROMPT_TIME = 100
     BUFFER_SIZE = 65536
 
@@ -28,6 +28,7 @@ class Process:
         for line in f:
             m = Process.MENU_RE.match(line)
             if m:
+                print "M:", line
                 menuName = m.group(1)
                 if not Process.NONE_RE.match(menuName):
                   self.menu = menuName
@@ -99,8 +100,8 @@ if __name__ == '__main__':
         global result
         result = ''.join([result, s])
 
-    YES = re.compile('^\s*Y(ES)?\s*$', re.IGNORECASE)
-    NO  = re.compile('^\s*N(O)?\s*$', re.IGNORECASE)
+    YES = re.compile(r'^\s*Y(ES)?\s*$', re.IGNORECASE)
+    NO  = re.compile(r'^\s*N(O)?\s*$', re.IGNORECASE)
     # get yes/no return True/False
     def askYN(prompt):
         global YES, NO
