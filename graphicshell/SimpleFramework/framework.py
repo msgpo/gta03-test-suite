@@ -90,6 +90,7 @@ class EventHandler:
         pygame.event.clear()
         while run:
             event = pygame.event.wait()
+            pygame.event.clear()
             if event.type == pygame.QUIT:
                 sys.exit(0)
             elif event.type == pygame.MOUSEBUTTONDOWN:
