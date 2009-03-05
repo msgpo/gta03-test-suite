@@ -1,0 +1,23 @@
+auto lo
+iface lo inet loopback
+address 127.0.0.1
+netmask 255.0.0.0
+
+#auto eth0
+iface eth0 inet dhcp
+
+auto usb0
+iface usb0 inet static
+      address 192.168.0.200
+      netmask 255.255.255.192
+      post-up /etc/network/freerunner start usb0 192.168.0.200 192.168.0.202
+      pre-down /etc/network/freerunner stop usb0 192.168.0.200 192.168.0.202
+
+auto bnep0
+iface bnep0 inet static
+      address 10.12.14.200
+      netmask 255.0.0.0
+      post-up /etc/init.d/dhcp3-server start
+      post-up /etc/network/freerunner start bnep0 10.12.14.200 10.12.14.202
+      pre-down /etc/network/freerunner stop bnep0 10.12.14.200 10.12.14.202
+      pre-down /etc/init.d/dhcp3-server stop

@@ -1,0 +1,9 @@
+# udev rules file for Neo Freerunner Debug Board v3
+#
+
+ACTION!="add", GOTO="neo_dbg_rules_end"
+SUBSYSTEM!="usb_device", GOTO="neo_dbg_rules_end"
+
+SYSFS{idVendor}=="1457", SYSFS{idProduct}=="5118", MODE="664", GROUP="users"
+
+LABEL="neo_dbg_rules_end"

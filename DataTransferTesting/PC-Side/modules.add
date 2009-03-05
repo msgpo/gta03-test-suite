@@ -1,0 +1,2 @@
+# neo debug board
+ftdi_sio vendor=0x1457 product=0x5118

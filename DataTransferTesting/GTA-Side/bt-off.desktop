@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.0
+Name=BT-Off
+Type=Application
+Comment=Turn off Bluetooth Ethernet
+Terminal=true
+Exec=/home/root/bt-net.sh stop
+Path=
+Icon=/home/root/bluetooth-off.png
+Categories=ConsoleOnly;System;Application;
+GenericName=Bluetooth Ethernet Off
+Categories=Office;

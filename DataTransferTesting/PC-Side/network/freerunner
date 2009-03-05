@@ -1,0 +1,147 @@
+#!/bin/sh
+# configures the freerunner for internet
+
+
+mode="$1"
+device="$2"
+LocalIP="$3"
+RemoteIP="$4"
+
+TagFilePrefix='/var/run/openmoko-ip-forward-'
+
+
+# get first ip for dns
+DNSIP=$(cat /etc/resolv.conf | awk '/nameserver/{ print $2 }' | head -n 1 )
+
+
+EnableDNS()
+{
+  local LocalIP RemoteIP DNSIP
+  LocalIP="$1"; shift
+  RemoteIP="$1"; shift
+  DNSIP="$1"; shift
+ 
+  iptables -A POSTROUTING -t nat -j MASQUERADE -s "${RemoteIP}"
+  iptables -A PREROUTING -t nat -p tcp -s "${RemoteIP}" -d "${LocalIP}" \
+    --dport domain -j DNAT --to-destination "${DNSIP}"
+  iptables -A PREROUTING -t nat -p udp -s "${RemoteIP}" -d "${LocalIP}" \
+    --dport domain -j DNAT --to-destination "${DNSIP}"
+}
+
+DisableDNS()
+{
+  local LocalIP RemoteIP DNSIP
+  LocalIP="$1"; shift
+  RemoteIP="$1"; shift
+  DNSIP="$1"; shift
+ 
+  iptables -D POSTROUTING -t nat -j MASQUERADE -s "${RemoteIP}"
+  iptables -D PREROUTING -t nat -p tcp -s "${RemoteIP}" -d "${LocalIP}" \
+    --dport domain -j DNAT --to-destination "${DNSIP}"
+  iptables -D PREROUTING -t nat -p udp -s "${RemoteIP}" -d "${LocalIP}" \
+    --dport domain -j DNAT --to-destination "${DNSIP}"
+}
+
+HaveTags()
+{
+  local flag
+  flag=0
+  for tag in "${TagFilePrefix}"*
+  do
+    if [ X"${tag}" != X"${TagFilePrefix}"'*' ]
+    then
+      return 0
+    fi
+  done
+  return 1
+}
+
+EnableForwarding()
+{
+  local device 
+  device="$1"; shift
+
+  if [ X"$(cat /proc/sys/net/ipv4/ip_forward)" = X"0" ]
+  then
+    echo "0 temporarily allow ip_forward for openmoko" > "${TagFilePrefix}${device}"
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+  elif HaveTags
+  then
+    for tag in "${TagFilePrefix}"*
+    do
+      if [ X"${tag}" != X"${TagFilePrefix}"'*' ]
+      then
+        cp "${tag}" "${TagFilePrefix}${device}"
+        break
+      fi
+    done
+  else
+    echo "1 ip_forward was already set" > "${TagFilePrefix}${device}"
+  fi
+}
+
+DisableForwarding()
+{
+  local device flag tag
+  device="$1"; shift
+
+  if [ -f "${TagFilePrefix}${device}" ]
+  then
+    read flag junk < "${TagFilePrefix}${device}"
+    rm -f "${TagFilePrefix}${device}"
+    # if all interfaces are shutdown then remove forwarding
+    HaveTags || [ ${flag} -eq 0 ] && echo 0 > /proc/sys/net/ipv4/ip_forward
+  fi
+}
+
+start()
+{
+  local device LocalIP RemoteIP DNSIP
+  device="$1"; shift
+  LocalIP="$1"; shift
+  RemoteIP="$1"; shift
+  DNSIP="$1"; shift
+
+  if [ ! -f "${TagFilePrefix}${device}" ]
+  then
+    EnableDNS "${LocalIP}" "${RemoteIP}" "${DNSIP}"
+    EnableForwarding "${device}"
+  fi
+}
+
+stop()
+{
+  local device LocalIP RemoteIP DNSIP
+  device="$1"; shift
+  LocalIP="$1"; shift
+  RemoteIP="$1"; shift
+  DNSIP="$1"; shift
+
+  if [ -f "${TagFilePrefix}${device}" ]
+  then
+    DisableDNS "${LocalIP}" "${RemoteIP}" "${DNSIP}"
+    DisableForwarding "${device}"
+  fi
+}
+
+
+
+case "${mode}" in
+  start)
+    start "${device}" "${LocalIP}" "${RemoteIP}" "${DNSIP}"
+    ;;
+
+  stop)
+    stop "${device}" "${LocalIP}" "${RemoteIP}" "${DNSIP}"
+    ;;
+
+  restart|reload|force-reload)
+    stop "${device}" "${LocalIP}" "${RemoteIP}" "${DNSIP}"
+    sleep 1
+    start "${device}" "${LocalIP}" "${RemoteIP}" "${DNSIP}"
+    ;;
+
+  status)
+    ls -l "${TagFilePrefix}"
+    ;;
+esac
