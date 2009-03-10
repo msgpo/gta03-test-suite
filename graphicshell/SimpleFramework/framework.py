@@ -281,7 +281,7 @@ class Draw(Frame):
             self.callbackarg = None
 
     def isBlank(self):
-        return self.blang
+        return self.blank
 
     def onDrag(self, pos):
         t = Frame.onDrag(self, pos)
