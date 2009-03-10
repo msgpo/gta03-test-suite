@@ -5,7 +5,7 @@
 # BEFORE: final
 # AFTER: shell_functions interactive
 # SECTION: led interactive gta02
-# MENU: LEDs
+# MENU: LEDs(02)
 # DESCRIPTION: Confirm the operation of the LEDs
 # AUTHOR: Christopher Hall <hsw@openmoko.com>
 

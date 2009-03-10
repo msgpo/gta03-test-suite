@@ -58,8 +58,8 @@ FLASH()
   do
     SET_VALUE "${brightness}" "${v}"
     v=$((${v} + ${inc}))
-    [ ${v} -ge ${maximum_pwm) ] && inc=$((0 - ${inc}))
-    [ ${v} -le ${minimum_pwm) ] && inc=$((0 - ${inc}))
+    [ ${v} -ge ${maximum_pwm} ] && inc=$((0 - ${inc}))
+    [ ${v} -le ${minimum_pwm} ] && inc=$((0 - ${inc}))
   done
 }
 
