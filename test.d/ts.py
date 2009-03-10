@@ -7,7 +7,7 @@
 # AFTER: shell_functions interactive
 # SECTION: touchscreen interactive
 # MENU: TS
-# DESCRIPTION: 
+# DESCRIPTION: Simple dropout test for touchscreen
 # AUTHOR: Christopher Hall <hsw@openmoko.com>
 
 import sys
