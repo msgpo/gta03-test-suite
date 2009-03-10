@@ -4,7 +4,7 @@
 # NAME: leds
 # BEFORE: final
 # AFTER: shell_functions interactive
-# SECTION: led interactive
+# SECTION: led interactive gta02
 # MENU: LEDs
 # DESCRIPTION: Confirm the operation of the LEDs
 # AUTHOR: Christopher Hall <hsw@openmoko.com>
@@ -12,7 +12,7 @@
 # get standard test functions
 . /etc/test.d/test-functions
 
-# path to the battery parameters
+# path to the LED parameters
 led_sys=/sys/devices/platform/gta02-led.0/leds
 
 INFO using: ${led_sys}
