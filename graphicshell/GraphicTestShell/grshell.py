@@ -102,7 +102,7 @@ def runProgram(p):
     status.draw()
     status.flip()
     p.run()
-    return False
+    return EventHandler.DONE
 
 page = 0
 def changePage(direction):
@@ -117,6 +117,7 @@ def changePage(direction):
     e.remove(current)
     e.prepend(dirList[page])
     e.refresh()
+    return EventHandler.DONE
 
 # create a list of frames containing menu buttons
 buttonCount = 0

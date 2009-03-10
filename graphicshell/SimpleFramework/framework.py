@@ -62,6 +62,13 @@ class Theme:
 
 class EventHandler:
 
+    # return value for event handler
+    # sum the requires values
+    DONE = 0
+    PASS_TO_OTHERS = 1
+    FLUSH_QUEUE = 2
+    EXIT_HANDLER = 4
+
     def __init__(self, frames, retain = False):
         self.retainBackground = retain
         if isinstance(frames, types.ListType):
@@ -84,27 +91,58 @@ class EventHandler:
             frame.draw()
         pygame.display.flip()
 
+    def onClick(self, event):
+        run = True
+        for frame in self.frameList:
+            r = frame.onClick(event.pos)
+            if r & EventHandler.EXIT_HANDLER != 0:
+                run = False
+            if r & EventHandler.FLUSH_QUEUE != 0:
+                pygame.event.clear()
+            if r & EventHandler.PASS_TO_OTHERS == 0:
+                break
+        return run
+
+    def offClick(self, event):
+        run = True
+        for frame in self.frameList:
+            r = frame.offClick(event.pos)
+            if r & EventHandler.EXIT_HANDLER != 0:
+                run = False
+            if r & EventHandler.FLUSH_QUEUE != 0:
+                pygame.event.clear()
+            if r & EventHandler.PASS_TO_OTHERS == 0:
+                break
+        return run
+
+    def onDrag(self, event):
+        run = True
+        for frame in self.frameList:
+            if event.buttons[0] == 1:
+                r = frame.onDrag(event.pos)
+                if r & EventHandler.EXIT_HANDLER != 0:
+                    run = False
+                if r & EventHandler.FLUSH_QUEUE != 0:
+                    pygame.event.clear()
+                if r & EventHandler.PASS_TO_OTHERS == 0:
+                    break
+        return run
+
     def run(self):
         self.refresh()
         run = True
         pygame.event.clear()
         while run:
-            event = pygame.event.wait()
-            pygame.event.clear()
-            if event.type == pygame.QUIT:
-                sys.exit(0)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                for frame in self.frameList:
-                    if frame.onClick(event.pos):
-                        break
-                self.refresh()
-            elif event.type == pygame.MOUSEBUTTONUP:
-                for frame in self.frameList:
-                    if frame.offClick(event.pos):
-                        run = False
-                        break
-                self.refresh()
-
+            self.refresh()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit(0)
+                elif event.type == pygame.MOUSEMOTION:
+                    run = self.onDrag(event)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    run = self.onClick(event)
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    run = self.offClick(event)
         self.frameList[0].drawScreen()
         pygame.display.flip()
 
@@ -188,17 +226,28 @@ class Frame(object):
             ", " + str(self.rectangle.width) + \
             ", " + str(self.rectangle.top) + ")"
 
+    def onDrag(self, pos):
+        t = EventHandler.PASS_TO_OTHERS
+        for c in self.children:
+            t = c.onDrag(pos)
+            if t & EventHandler.PASS_TO_OTHERS == 0:
+                break
+        return t
 
     def onClick(self, pos):
-        t = False
+        t = EventHandler.PASS_TO_OTHERS
         for c in self.children:
-            t = t or c.onClick(pos)
+            t = c.onClick(pos)
+            if t & EventHandler.PASS_TO_OTHERS == 0:
+                break
         return t
 
     def offClick(self, pos):
-        t = False
+        t = EventHandler.PASS_TO_OTHERS
         for c in self.children:
-            t = t or c.offClick(pos)
+            t = c.offClick(pos)
+            if t & EventHandler.PASS_TO_OTHERS == 0:
+                break
         return t
 
     def draw(self):
@@ -214,6 +263,58 @@ class Frame(object):
 
     def getScreen(self):
         return self.screen
+
+
+class Draw(Frame):
+
+    def __init__(self, name, **kwargs):
+        Frame.__init__(self, name, **kwargs)
+        self.pos = None
+        self.blank = True
+        if 'callback' in kwargs:
+            self.callback = kwargs['callback']
+        else:
+            self.callback = None
+        if 'callbackarg' in kwargs:
+            self.callbackarg = kwargs['callbackarg']
+        else:
+            self.callbackarg = None
+
+    def isBlank(self):
+        return self.blang
+
+    def onDrag(self, pos):
+        t = Frame.onDrag(self, pos)
+        if self.rectangle.collidepoint(pos):
+            new_pos = pos[0] - self.rectangle[0], pos[1] - self.rectangle[1]
+            if self.pos == None:
+                self.pos = new_pos
+            pygame.draw.line(self.surface, self.foreground, self.pos, new_pos)
+            self.blank = False
+            self.pos = new_pos
+        else:
+            self.pos = None
+        return t
+
+    def onClick(self, pos):
+        t = Frame.onClick(self, pos)
+        self.pos = None
+        if t & EventHandler.PASS_TO_OTHERS != 0 and self.rectangle.collidepoint(pos):
+            if self.callback != None:
+                return self.callback(self.callbackarg)
+            else:
+                return EventHandler.DONE
+        return t
+
+    def offClick(self, pos):
+        t = Frame.offClick(self, pos)
+        self.pos = None
+        if t & EventHandler.PASS_TO_OTHERS != 0 and self.rectangle.collidepoint(pos):
+            if self.callback != None:
+                return self.callback(self.callbackarg)
+            else:
+                return EventHandler.DONE
+        return t
 
 
 class Text(Frame):
@@ -292,7 +393,7 @@ class Text(Frame):
         if self.rectangle.collidepoint(pos):
             self.active = True
             self.pos = pos
-        return False
+        return EventHandler.PASS_TO_OTHERS
 
     def offClick(self, pos):
         if self.active:
@@ -304,7 +405,7 @@ class Text(Frame):
             elif self.offsetY > self.currentLines - self.maxLines:
                 self.offsetY = self.currentLines - self.maxLines
             self.display()
-        return False
+        return EventHandler.PASS_TO_OTHERS
 
 
 class Button(Frame):
@@ -333,7 +434,7 @@ class Button(Frame):
         if self.rectangle.collidepoint(pos):
             self.active = True
             self.display()
-        return False
+        return EventHandler.PASS_TO_OTHERS
 
     def offClick(self, pos):
         if self.active:
@@ -342,8 +443,8 @@ class Button(Frame):
             if self.callback != None:
                 return self.callback(self.callbackarg)
             else:
-                return True
-        return False
+                return EventHandler.EXIT_HANDLER
+        return EventHandler.PASS_TO_OTHERS
 
     def display(self):
         if self.active:
@@ -400,7 +501,7 @@ class Dialog(Frame):
 
     def setState(self, state):
         self.state = state
-        return True
+        return EventHandler.EXIT_HANDLER
 
     def set(self, text):
         self.text.clear()
