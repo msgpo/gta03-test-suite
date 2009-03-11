@@ -21,7 +21,7 @@ INFO using: ${led_sys}
 #colours='red green blue'
 colours='green blue'
 
-enable='_enable'
+enable='_mode'
 pwm='_pwm'
 current='_cur'
 
@@ -49,17 +49,25 @@ FLASH()
 {
   local led brightness v inc
   led="$1"; shift
-  brightness="${led_sys}/${led}${pwm}" 0
+  brightness="${led_sys}/${led}${pwm}"
   SET_VALUE "${led_sys}/${led}${enable}" "${on}"
   SET_VALUE "${led_sys}/${led}${current}" "${nominal_current}"
   v=0
-  inc=1
+  inc=10
   while :
   do
     SET_VALUE "${brightness}" "${v}"
     v=$((${v} + ${inc}))
-    [ ${v} -ge ${maximum_pwm} ] && inc=$((0 - ${inc}))
-    [ ${v} -le ${minimum_pwm} ] && inc=$((0 - ${inc}))
+    if [ ${v} -ge ${maximum_pwm} ]
+    then
+      inc=$((0 - ${inc}))
+      v="${maximum_pwm}"
+    fi
+    if [ ${v} -le ${minimum_pwm} ]
+    then
+      inc=$((0 - ${inc}))
+      v="${minimum_pwm}"
+    fi
   done
 }
 
