@@ -13,7 +13,7 @@
 # defaults
 
 #PLATFORM=gta02
-PLATFORM=gta03
+PLATFORM=om-3d7k
 FEED_SECTION_LIST="all armv4t"
 
 URL=http://downloads.openmoko.org/repository/testing
@@ -134,7 +134,7 @@ makeroot()
   SUDO mkdir -p "${rootfs}/etc/opkg"
   SUDO mkdir -p "${rootfs}/usr/lib/opkg"
 
-  for item in ${FEED_SECTION_LIST} "om-${PLATFORM}"
+  for item in ${FEED_SECTION_LIST} "om-${PLATFORM#om-}"
   do
     SUDO echo src/gz om-dev-${item} "${url}/${item}" > "${ConfDir}/${item}-feed.conf"
   done
@@ -150,7 +150,7 @@ arch any 6
 arch noarch 11
 arch arm 16
 arch armv4t 21
-arch om-${PLATFORM} 26
+arch om-${PLATFORM#om-} 26
 EOF
   fi
 }
@@ -227,8 +227,8 @@ do
       ;;
     --platform=*)
       case "${arg#*=}" in
-        [gG][tT][aA]03)
-          PLATFORM=gta03
+        [oO][mM][-_]3[dD]7[kK])
+          PLATFORM=om-3d7k
           ;;
         [gG][tT][aA]02)
           PLATFORM=gta02

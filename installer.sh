@@ -26,7 +26,7 @@ MountPointTag="${MountPoint}/.not_mounted_yet"
 
 RootFSArchive="${BuildDirectory}/rootfs.tar.bz2"
 
-PLATFORM=gta03
+PLATFORM=om-3d7k
 URL=http://downloads.openmoko.org/repository/testing
 
 # set to YES to completely remove the build directory before other
@@ -64,7 +64,7 @@ QiImage="image/qi-s3c6410-"
 
 # where to obtain kernel
 KernelDirectory="$(readlink -m ../kernel)"
-KernelImage="uImage-$(echo ${PLATFORM} | tr a-z A-Z).bin"
+KernelImage="uImage-$(echo ${PLATFORM} | tr a-z- A-Z_).bin"
 
 # how to run the rootfs builder
 RootFSBuilderDirectory="$(readlink -m rootfs-builder)"
@@ -80,7 +80,7 @@ FakerootDatabase="${StageDirectory}.frdb"
 # type of image
 ReplaceKernel="NO"
 KernelDirectory="$(readlink -m ../kernel)"
-KernelImage="uImage-GTA03.bin"
+KernelImage="uImage-OM_3D7K.bin"
 
 # provide a hook for the config file to adjust things after command line
 # arguments have been processed; set to the name of a shell function
@@ -107,6 +107,7 @@ usage()
   echo '  --keep       Keep sudo authorisation'
   echo '  --kernel     Replace the packaged kernel with a local one'
   echo '  --gtaXX      Set the platform'
+  echo '  --om-XXXX    Set the platform'
   echo '  --install    Install to SD Card'
   echo '  --no-XXX     Turn off an option'
   echo 'note: options override configuration file ('${ConfigurationFile}')'
@@ -308,8 +309,8 @@ ApplyFixes()
       #FixGTA02
       ;;
 
-    [gG][tT][aA]03)
-      #FixGTA03
+    [oO][mM][-_]3[dD]7[kK])
+      #OM_3D7K
       ;;
   esac
 }
@@ -440,7 +441,10 @@ do
     --install|--no-install)
       YesOrNo "${arg}" InstallToSDCard
       ;;
-    --gta[0-9][0-9])
+    --gta[0][12])
+      PLATFORM="${arg#--}"
+      ;;
+    --om-*)
       PLATFORM="${arg#--}"
       ;;
     -h|--help)
