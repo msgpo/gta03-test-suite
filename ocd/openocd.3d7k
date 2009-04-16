@@ -1,0 +1,45 @@
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+
+#interface
+interface ft2232
+jtag_speed 3
+
+ft2232_vid_pid 0x0403 0x6010
+#ft2232_vid_pid 0x1457 0x5118
+#ft2232_device_desc "OOCDLink A"
+ft2232_layout oocdlink
+
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst #srst_pulls_trst
+
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+#jtag_device 4 0x1 0x1 0xe
+
+jtag_device 4 0x1 0xf 0xe
+jtag_device 5 0x1 0x1f 0x1e
+
+
+
+#target configuration
+#daemon_startup attach
+#target <type> <startup mode>
+#target arm920t little reset_run 0 arm920t
+target arm11 little reset_halt 1
+working_area 0 0x200000 0x4000 backup
+#run_and_halt_time 0 5000
+
+#flash configuration (K9D1208V0M: 512Mbit, x8, 3.3V, Mode: Normal, 1st gen)
+#NOR flash configuration (SST39VF400A 4Mbit, x16, 3.3V, 128sect, 4k/sect, 8 blocks (64kByte per block)
+# flash bank cfg addr length chip_width bus_width target
+#flash bank cfi 0x00000000 0x80000 2 2 0
+
+
+# SAM7
+#jtag_device 4 0x1 0xf 0xe
+#target arm7tdmi little reset_halt 0 arm7tdmi
+#daemon_startup reset
+#working_area 0 0x40000000 0x4000 nobackup
+#flash bank at91sam7 0 0 0 0 0
