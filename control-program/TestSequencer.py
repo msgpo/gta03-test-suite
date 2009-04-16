@@ -21,6 +21,8 @@ def displayDoc(message):
     wrapper = textwrap.TextWrapper(initial_indent = '    \ ', subsequent_indent = '    | ')
     print wrapper.fill(message)
 
+def info(x):
+    print 'INFO:', x
 
 # the main script running application
 # this can throw exceptions if compile or setUp fail
@@ -37,7 +39,10 @@ def runTests(name, debug):
     if verbose:
         print 'TEST: Load Module:', module_name
 
-    global_variables = {'debug': debug}
+    global_variables = {
+        'debug': debug,
+        'info': lambda x : info(x),
+        }
     eval('0', global_variables) # populate global_variables
 
     execfile(name, global_variables)
