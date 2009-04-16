@@ -52,12 +52,12 @@ class PSU2303(Gpib):
 
     def settings(self):
         self.write(':source:voltage:amplitude?\n')
-        print 'Vs   = %7.3f V' % float(self.read().strip('\r\n \t')),
+        print 'Vs   = %7.3f V' % float(self.read().strip('\r\n \t'))
         self.write(':source:current:limit:value?\n')
         print 'Ilim = %7.3f mA' % (float(self.read().strip('\r\n \t')) * 1000)
 
     def measure(self):
-        print 'V = %7.3f V' % self.voltage,
+        print 'V = %7.3f V' % self.voltage
         print 'I = %7.3f mA' % (self.current * 1000)
 
     @property
