@@ -1,0 +1,12 @@
+telnet_port 4444
+gdb_port 3333
+interface ft2232
+jtag_speed 0
+ft2232_vid_pid 0x1457 0x5118
+ft2232_layout "jtagkey"
+reset_config trst_and_srst
+jtag_device 4 0x1 0xf 0xe
+daemon_startup attach
+target arm920t little reset_run 0 arm920t
+working_area 0 0x200000 0x4000 backup
+run_and_halt_time 0 5000
